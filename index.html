@@ -55,6 +55,8 @@ Not affiliated with Elektron. Model:Cycles and Model:Samples are Elektron produc
   --oled-off: #0b0c0d;
   --oled-glow: rgba(242, 241, 234, 0.35);
   --grid: rgba(128, 128, 128, 0.32);
+  --layout-col: rgba(255, 69, 58, 0.9);       /* the layout grid lies on the screen, so it keeps its colors in both themes */
+  --layout-row: rgba(10, 132, 255, 0.9);
   --scrim: rgba(10, 10, 12, 0.5);
   --hover: rgba(48, 38, 24, 0.06);
   --sel: rgba(163, 86, 10, 0.14);
@@ -270,6 +272,10 @@ body.arranging, body.arranging * { cursor: grabbing !important; user-select: non
 .export-options:not([hidden]) { animation: unfold 0.16s ease-out; }
 @keyframes unfold { from { opacity: 0; transform: translateY(-4px); } }
 
+.layout-form { display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); gap: 6px 8px; align-items: center; }
+.layout-axis { font-size: 12px; color: var(--muted); }
+.layout-form input { width: 100%; min-width: 0; height: 28px; padding: 0 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--key); font-variant-numeric: tabular-nums; }
+.layout-sizes { margin: 8px 0 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .preview-wrap { display: grid; place-items: center; padding: 10px; background: var(--bezel); border-radius: 8px; overflow: hidden; }
 #preview { display: block; filter: drop-shadow(0 0 1.5px var(--oled-glow)); }
 
@@ -454,6 +460,23 @@ dialog p { margin: 8px 0; max-width: 62ch; }
         <h2 id="h-preview">On screen</h2>
         <div class="preview-wrap" id="preview-wrap"><canvas id="preview" role="img" aria-label="The sprite in the middle of the 128 × 64 screen"></canvas></div>
       </section>
+
+      <section class="panel layout" data-panel="layout" aria-labelledby="h-layout">
+        <h2 id="h-layout">Layout grid</h2>
+        <div class="layout-form" role="group" aria-labelledby="h-layout" aria-describedby="layout-help">
+          <span></span><span class="label">Count</span><span class="label">Gap</span><span class="label">Margin</span>
+          <span class="layout-axis">Columns</span>
+          <input type="number" id="lg-cols-count" data-axis="cols" data-key="count" min="0" max="64" step="1" inputmode="numeric" aria-label="Columns">
+          <input type="number" id="lg-cols-gap" data-axis="cols" data-key="gap" min="0" max="64" step="1" inputmode="numeric" aria-label="Gap between the columns, in pixels">
+          <input type="number" id="lg-cols-margin" data-axis="cols" data-key="margin" min="0" max="64" step="1" inputmode="numeric" aria-label="Margin left and right of the columns, in pixels">
+          <span class="layout-axis">Rows</span>
+          <input type="number" id="lg-rows-count" data-axis="rows" data-key="count" min="0" max="64" step="1" inputmode="numeric" aria-label="Rows">
+          <input type="number" id="lg-rows-gap" data-axis="rows" data-key="gap" min="0" max="64" step="1" inputmode="numeric" aria-label="Gap between the rows, in pixels">
+          <input type="number" id="lg-rows-margin" data-axis="rows" data-key="margin" min="0" max="64" step="1" inputmode="numeric" aria-label="Margin above and below the rows, in pixels">
+        </div>
+        <p class="layout-sizes" id="layout-sizes" aria-live="polite"></p>
+        <p class="sr-only" id="layout-help">Columns and rows laid over the canvas to count by. They are never part of the pixels; they are saved with the sprite and listed in the .json. A count of 0 leaves that side out.</p>
+      </section>
     </aside>
   </main>
 
@@ -465,6 +488,7 @@ dialog p { margin: 8px 0; max-width: 62ch; }
       <button class="mini" id="zoom-in" type="button" aria-label="Zoom in" title="Zoom in (+)">+</button>
       <button class="mini" id="zoom-fit" type="button" title="Fit the window (0)">Fit</button>
       <label class="check" for="grid"><input type="checkbox" id="grid" checked>Grid</label>
+      <label class="check" for="layout-on" title="Show the columns and rows of the Layout grid panel"><input type="checkbox" id="layout-on" checked>Layout</label>
       <label class="check" for="os-y" title="Count y from the bottom row, as the OS does: y = 0 is the bottom"><input type="checkbox" id="os-y">OS y</label>
     </span>
   </footer>
@@ -494,6 +518,8 @@ dialog p { margin: 8px 0; max-width: 62ch; }
   <h3>Stamps</h3>
   <p>Drag a stamp from the Stamps panel onto the canvas, or click it to put it in the middle. It floats on the selected layer like pasted pixels: drag it or nudge it with the arrow keys, then press <kbd>Enter</kbd> or click next to it. <kbd>Delete</kbd> throws it away. Stamps bring their own dark and lit pixels; where they are transparent, what lies below stays.</p>
   <p>To keep your own, select an area and press <b>Save selection</b> under Custom. Your stamps stay in this browser.</p>
+  <h3>Layout grid</h3>
+  <p>The Layout grid panel lays columns and rows over the canvas to count by. For each you set how many, the gap between them and the margin outside them, in pixels; what doesn't divide evenly goes to the first ones, a pixel each. Thin lines show their edges, red for the columns and blue for the rows; they are never part of the pixels, and <b>Layout</b> at the bottom hides them. The status line names the column and row under the pointer. The grid is saved with the sprite and in its PNG, and the .json lists it.</p>
   <h3>Keys</h3>
   <div class="keys">
     <span><kbd>V</kbd></span><span>Move the selected layers</span>
@@ -1027,7 +1053,7 @@ const Core = (() => {
   // which the device draws in its own fonts, and the layers with the boxes they cover. Coordinates as the OS's drawing
   // calls take them: x from the left, y from the bottom row (0); a box is [x0, y0, x1, y1], both corners included. ----
 
-  function describe(items, w, h, { name = "sprite", device = "models", files = {} } = {}) {
+  function describe(items, w, h, { name = "sprite", device = "models", files = {}, grid = null } = {}) {
     const box = r => r && [r.x, h - r.y - r.h, r.x + r.w - 1, h - 1 - r.y];
     const texts = [], layers = [];
     (function walk(list, path, shown) {
@@ -1041,7 +1067,7 @@ const Core = (() => {
         }
       }
     })(items, [], true);
-    return {
+    const out = {
       format: "1-bit-editor screen", version: 1, name, device, size: [w, h], files,
       about: "A screen drawn in the 1-Bit Editor. The PNG shows how it looks on the device; this file says what is on it.",
       coordinates: "x counts from the left, y from the bottom row (0), as the OS's drawing calls take them. A box is [x0, y0, x1, y1], both corners included.",
@@ -1050,6 +1076,14 @@ const Core = (() => {
       fonts: Object.fromEntries(Object.values(FONTS).map(f => [f.id, { name: f.name, capHeight: f.ascent, descent: f.descent }])),
       texts, layers,
     };
+    if (hasGrid(grid)) {
+      out.layoutGrid = {
+        note: "The columns and rows the screen is laid out by; the device draws none of it. A column is [x0, x1], a row [y0, y1] in the OS's coordinates, both ends included; rows are listed from the top.",
+        columns: { ...grid.cols, fields: gridFields(w, grid.cols) },
+        rows: { ...grid.rows, fields: gridFields(h, grid.rows).map(([a, b]) => [h - 1 - b, h - 1 - a]) },
+      };
+    }
+    return out;
   }
 
   function textsFromDescription(d, w, h) {   // the text layers a .json from describe() holds, top first, in canvas coordinates
@@ -1063,6 +1097,35 @@ const Core = (() => {
       it.visible = t.visible !== false;
       return it;
     });
+  }
+
+  // ---- Layout grid: columns and rows laid over the canvas to count by, never part of the pixels. Each has a count,
+  // the gap between its fields and the margin outside them. What doesn't divide evenly goes to the first fields, one
+  // pixel each: 128 in 3 columns are 43, 43 and 42. ----
+
+  const GRID_MAX = 64;                       // for the count, the gap and the margin
+  function gridFields(size, a) {             // [first, last] pixel of each field along size, or [] if they don't fit
+    const room = size - 2 * a.margin - (a.count - 1) * a.gap;
+    if (a.count < 1 || room < a.count) return [];
+    const base = Math.floor(room / a.count), extra = room % a.count, out = [];
+    for (let i = 0, at = a.margin; i < a.count; i++) {
+      const n = base + (i < extra ? 1 : 0);
+      out.push([at, at + n - 1]);
+      at += n + a.gap;
+    }
+    return out;
+  }
+  function loadGrid(g) {                     // a stored layout grid, checked: an axis with anything odd has no fields
+    const ok = v => Number.isInteger(v) && v >= 0 && v <= GRID_MAX;
+    const axis = a => (a && ok(a.count) && ok(a.gap) && ok(a.margin) ? { count: a.count, gap: a.gap, margin: a.margin }
+      : { count: 0, gap: 0, margin: 0 });
+    return { cols: axis(g && g.cols), rows: axis(g && g.rows) };
+  }
+  const hasGrid = g => !!g && (g.cols.count > 0 || g.rows.count > 0);
+  const sameGrid = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  function gridFromDescription(d) {          // the layout grid a .json from describe() holds, or null
+    const g = d && d.layoutGrid;
+    return g && typeof g === "object" ? loadGrid({ cols: g.columns, rows: g.rows }) : null;
   }
 
   // ---- .bin: the layout of the OS's own sprites, checked against the Model:Cycles OS 1.13 sprites and the
@@ -1167,7 +1230,7 @@ const Core = (() => {
     return concat([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("tEXt", meta),
       chunk("IDAT", await zlib(rows)), chunk("IEND", new Uint8Array(0))]);
   }
-  function readPngMeta(bytes) {              // {w, h, scale[, v, layers]} from our tEXt chunk, or null
+  function readPngMeta(bytes) {              // {w, h, scale[, v, device, layers, grid]} from our tEXt chunk, or null
     if (!isPng(bytes)) return null;
     const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     for (let o = 8; o + 12 <= bytes.length;) {
@@ -1183,6 +1246,7 @@ const Core = (() => {
             if (Number.isInteger(m.v)) out.v = m.v;   // 2: the picture is the editor's, inverted; 1 and 3: as drawn
             if (typeof m.device === "string") out.device = m.device;
             if (Array.isArray(m.layers)) out.layers = m.layers;
+            if (m.grid && typeof m.grid === "object") out.grid = m.grid;
             return out;
           } catch (err) { return null; }
         }
@@ -1333,7 +1397,7 @@ const Core = (() => {
     STAMP_CATS, STAMPS, stampBitmap, trim, FONTS, textWidth, paintText,
     binSize, toBin, fromBin, sizeFromName, baseName,
     crc32, zlibStored, isPng, encodePng, readPngMeta, fromRgba, fitScale, downscale, zipOne, zipFiles, readZip, describe,
-    textsFromDescription, bounds,
+    textsFromDescription, bounds, GRID_MAX, gridFields, loadGrid, hasGrid, sameGrid, gridFromDescription,
     pack, unpack, startItems, oldExampleLayers, oldExample,
   };
 })();
@@ -1392,11 +1456,13 @@ const Core = (() => {
     // The document: a tree of layers and groups over the lit canvas, listed top first (Core: layer, group).
     // Pixels nothing was drawn on are clear, so Clear, new canvas area and moved or deleted pixels show what is below.
     name: "example", w: 128, h: 64, items: C.startItems(),
+    layout: C.loadGrid(null),               // the layout grid's columns and rows (Core: gridFields), none at first
     selected: new Set(), active: null,      // the layers panel selection (ids) and the item last clicked
     tool: "brush", primary: "off", secondary: "on", size: 1, filled: false, radius: 2, dir: "up", font: "regular", stampTab: "basics",
     align: "left", textStyle: "inverted",   // for new text layers (dark on the light canvas); a selected one shows its own
     device: "models",   // what the sprite is for; only the Model:Cycles / Model:Samples screen so far
     zoom: 8, fit: true, grid: true, osY: false,   // osY: the status line counts y from the bottom, like the OS
+    layoutOn: true,                               // whether the layout grid shows
     sel: null,      // selected rectangle {x, y, w, h}, inside the canvas
     float: null,    // pixels being moved {b, x, y, before, layerId}, drawn on top until they are placed
     text: null,     // text being typed {x, y, value, ink, layerId}
@@ -1492,12 +1558,13 @@ const Core = (() => {
   const downloads = window.claude && typeof window.claude.use === "function"
     ? window.claude.use("downloads").catch(() => null) : Promise.resolve(null);
 
-  // ---- Undo: snapshots of the whole layer tree, a few kilobytes, and of which layers were selected ----
+  // ---- Undo: snapshots of the whole layer tree, a few kilobytes, of the layout grid and of which layers were selected ----
 
   const history = { undo: [], redo: [] };
-  const snapshot = () => ({ w: state.w, h: state.h, items: C.cloneItems(state.items), selected: [...state.selected], active: state.active });
+  const snapshot = () => ({ w: state.w, h: state.h, items: C.cloneItems(state.items), layout: C.loadGrid(state.layout),
+    selected: [...state.selected], active: state.active });
   function record(before) {                 // keeps `before` as an undo step if the document changed since
-    if (before.w === state.w && before.h === state.h && C.sameItems(before.items, state.items)) return false;
+    if (before.w === state.w && before.h === state.h && C.sameItems(before.items, state.items) && C.sameGrid(before.layout, state.layout)) return false;
     history.undo.push(before);
     if (history.undo.length > 200) history.undo.shift();
     history.redo.length = 0;
@@ -1515,6 +1582,9 @@ const Core = (() => {
     state.w = s.w;
     state.h = s.h;
     state.items = s.items;
+    state.layout = s.layout;
+    gridBefore = null;                       // an edit going on starts afresh from here
+    showGrid();
     for (const g of inOrder()) if (open.has(g.id)) g.open = open.get(g.id);   // folding a group isn't undone
     state.selected = new Set(s.selected);
     state.active = s.active;
@@ -2002,6 +2072,7 @@ const Core = (() => {
     octx.clearRect(0, 0, overlay.width, overlay.height);
     const lw = Math.max(1, Math.round(dpr));
     octx.lineWidth = lw;
+    if (state.layoutOn) drawLayout(at, lw);    // under the markers
     if (lastP) setCursor(lastP);               // the cursor follows tool changes and new selections, too
     const m = marker();
     if (m) {
@@ -2021,6 +2092,15 @@ const Core = (() => {
         octx.fillRect(at(t.x + (w ? w + 1 : 0)), at(t.y), Math.max(lw, Math.round(k / 3)), at(t.y + f.ascent) - at(t.y));
       }
     }
+  }
+  function drawLayout(at, lw) {              // the layout grid: the edges of its fields as lines
+    const W = overlay.width, H = overlay.height;
+    const cols = C.gridFields(state.w, state.layout.cols), rows = C.gridFields(state.h, state.layout.rows);
+    const edges = fields => [...new Set(fields.flatMap(([a, b]) => [a, b + 1]))];   // fields side by side share one
+    octx.fillStyle = token("--layout-col");
+    for (const x of edges(cols)) octx.fillRect(Math.min(W - lw, at(x)), 0, lw, H);
+    octx.fillStyle = token("--layout-row");
+    for (const y of edges(rows)) octx.fillRect(0, Math.min(H - lw, at(y)), W, lw);
   }
   function ants(x, y, w, h, lw, dpr) {
     octx.setLineDash([]);
@@ -2055,6 +2135,15 @@ const Core = (() => {
   function updatePos() {
     const y = state.hover && (state.osY ? state.h - 1 - state.hover[1] : state.hover[1]);
     let s = state.hover ? `x ${state.hover[0]}  y ${y}${state.osY ? " (OS)" : ""}` : "x –  y –";
+    if (state.hover && state.layoutOn) {       // where the pointer is in the layout grid: a field, a gap or the margin
+      const place = (fields, v, name) => {
+        const i = fields.findIndex(([a, b]) => v >= a && v <= b);
+        return i >= 0 ? `${name} ${i + 1}` : v > fields[0][0] && v < fields[fields.length - 1][1] ? `${name} gap` : "margin";
+      };
+      const cols = C.gridFields(state.w, state.layout.cols), rows = C.gridFields(state.h, state.layout.rows);
+      const parts = [cols.length && place(cols, state.hover[0], "column"), rows.length && place(rows, state.hover[1], "row")].filter(Boolean);
+      if (parts.length) s += `  ·  ${parts.join(", ")}`;
+    }
     if (drag && drag.box) s += `  ·  ${Math.abs(drag.box[2] - drag.box[0]) + 1} × ${Math.abs(drag.box[3] - drag.box[1]) + 1}`;
     const signed = v => (v > 0 ? `+${v}` : v < 0 ? `−${-v}` : "0");
     if (state.shift && (state.shift.dx || state.shift.dy)) s += `  ·  moved ${signed(state.shift.dx)}, ${signed(state.shift.dy)}`;
@@ -2088,6 +2177,41 @@ const Core = (() => {
   $("zoom-fit").addEventListener("click", zoomFit);
   $("grid").addEventListener("change", e => { state.grid = e.target.checked; render(); save(); });
   $("os-y").addEventListener("change", e => { state.osY = e.target.checked; updatePos(); save(); });
+
+  // ---- Layout grid panel: the document's columns and rows. What is typed shows at once; leaving the field (or Enter,
+  // or its arrows) makes it one undo step. ----
+
+  const gridInputs = [...document.querySelectorAll(".layout-form input")];
+  let gridBefore = null;                     // the document before the first keystroke of an edit: its undo step
+  function showGrid(typing = null) {         // the panel and the footer switch follow the document's layout grid
+    for (const el of gridInputs) if (el !== typing) el.value = String(state.layout[el.dataset.axis][el.dataset.key]);
+    $("layout-on").checked = state.layoutOn;
+    const sizes = (name, size, a) => {
+      if (!a.count) return `no ${name}`;
+      const n = C.gridFields(size, a).map(([s, e]) => e - s + 1);
+      if (!n.length) return `the ${name} don't fit in ${size} px`;
+      return `${name} ${n.every(v => v === n[0]) ? `${n.length} × ${n[0]}` : n.join(", ")} px`;
+    };
+    const text = `${sizes("columns", state.w, state.layout.cols)} · ${sizes("rows", state.h, state.layout.rows)}`;
+    $("layout-sizes").textContent = text[0].toUpperCase() + text.slice(1);
+  }
+  for (const el of gridInputs) {
+    el.addEventListener("input", () => {
+      const v = Number(el.value);
+      if (el.value === "" || !Number.isFinite(v)) return;   // still typing
+      if (!gridBefore) gridBefore = snapshot();
+      state.layout[el.dataset.axis][el.dataset.key] = Math.max(0, Math.min(C.GRID_MAX, Math.round(v)));
+      state.layoutOn = true;
+      showGrid(el);
+      render();
+    });
+    el.addEventListener("change", () => {
+      el.value = String(state.layout[el.dataset.axis][el.dataset.key]);   // what is in use, also after an empty entry
+      if (!gridBefore || !record(gridBefore)) save();   // record saves when the grid changed
+      gridBefore = null;
+    });
+  }
+  $("layout-on").addEventListener("change", e => { state.layoutOn = e.target.checked; render(); save(); });
 
   // ---- Size ----
 
@@ -2877,7 +3001,7 @@ const Core = (() => {
   // as tabs; a tab dragged out gets its own place again. The layout stays in this browser. ----
 
   const side = document.querySelector("aside.side");
-  const PANELS = ["colors", "layers", "stamps", "file", "preview"];
+  const PANELS = ["colors", "layers", "stamps", "file", "preview", "layout"];
   const PANEL_STORE = "model-sprite-editor:panels";
   const panelEl = Object.fromEntries(PANELS.map(k => [k, side.querySelector(`[data-panel="${k}"]`)]));
   const panelTitle = k => panelEl[k].querySelector("h2").textContent;
@@ -3042,12 +3166,14 @@ const Core = (() => {
   async function savePng(scale) {
     place();
     const name = scale > 1 ? `${fileBase()}@${scale}x.png` : `${fileBase()}.png`;
-    // The picture as the device shows it (white = lit = light here), plus the layers. Version 3: not inverted, unlike 2.
-    const png = await C.encodePng(composite(), scale, { v: 3, device: state.device, layers: C.saveItems(state.items) });
+    // The picture as the device shows it (white = lit = light here), plus the layers and the layout grid. Version 3: not
+    // inverted, unlike 2.
+    const png = await C.encodePng(composite(), scale, { v: 3, device: state.device, layers: C.saveItems(state.items),
+      ...(C.hasGrid(state.layout) ? { grid: state.layout } : {}) });
     if (await offer(name, png, "image/png")) toast(`Saved ${name}`);
   }
   function describeJson(base) {              // the screen described (Core: describe), number pairs and boxes kept on one line
-    const about = C.describe(state.items, state.w, state.h, { name: state.name, device: state.device,
+    const about = C.describe(state.items, state.w, state.h, { name: state.name, device: state.device, grid: state.layout,
       files: { bin: `${base}.bin`, png: `${base}.png`, png8: `${base}@8x.png` } });
     return new TextEncoder().encode(`${JSON.stringify(about, null, 2).replace(/\[\s+(-?\d+(?:,\s+-?\d+)*)\s+\]/g, (m, n) => `[${n.split(/,\s+/).join(", ")}]`)}\n`);
   }
@@ -3086,26 +3212,31 @@ const Core = (() => {
     }
     if (meta && meta.v === 2) b = C.invert(b);   // white = lit = light, except in the PNGs of version 2, which were inverted
     const sprite = C.toSprite(b);
-    let layers = null;                         // a PNG this editor saved carries its layers
-    if (meta && meta.layers && meta.w === sprite.w && meta.h === sprite.h) {
-      try { layers = C.loadItems(meta.layers, meta.w, meta.h); } catch (err) { layers = null; }
-      if (layers && meta.v === 2) C.oldTexts(layers);
+    let layers = null, grid = null;            // a PNG this editor saved carries its layers and its layout grid
+    if (meta && meta.w === sprite.w && meta.h === sprite.h) {
+      if (meta.layers) {
+        try { layers = C.loadItems(meta.layers, meta.w, meta.h); } catch (err) { layers = null; }
+        if (layers && meta.v === 2) C.oldTexts(layers);
+      }
+      if (meta.grid) grid = C.loadGrid(meta.grid);
     }
-    return { b: sprite, layers, device: meta && meta.device };
+    return { b: sprite, layers, grid, device: meta && meta.device };
   }
   async function openBytes(name, bytes) {    // a PNG or a .bin becomes the document; throws with a message otherwise
     let got;
     if (C.isPng(bytes)) got = await pngSprite(bytes, name);
     else if (/\.bin$/i.test(name)) got = { b: binSprite(bytes, name), layers: null };
     else throw new Error(`${name} is neither a PNG nor a .bin file.`);
-    const { b, layers, device } = got;
+    const { b, layers, grid, device } = got;
       state.sel = null;
       change(() => {
         state.w = b.w;
         state.h = b.h;
         state.items = layers || [C.layer("Layer 1", b.w, b.h, b.px)];
+        state.layout = grid || C.loadGrid(null);   // the file is the document now, its layout grid too
         if (DEVICES.includes(device)) state.device = device;
       });
+    showGrid();
     selectFirstLayer();
     renderLayers();
     state.name = C.baseName(name);
@@ -3116,15 +3247,20 @@ const Core = (() => {
     const n = inOrder().filter(it => it.type !== "group").length;
     return `${b.w} × ${b.h}${layers ? `, ${n} layer${n === 1 ? "" : "s"}` : ""}`;
   }
-  function addTexts(name, bytes) {           // the texts of a .json (Core: describe) come back as text layers on top
-    let d, texts;
+  function addTexts(name, bytes) {           // the texts of a .json (Core: describe) come back as text layers on top,
+    let d, texts;                            // its layout grid with them; → "2 texts and the layout grid", "" for nothing
     try { d = JSON.parse(new TextDecoder().decode(bytes)); } catch (err) { throw new Error(`${name} isn't a JSON file.`); }
     try { texts = C.textsFromDescription(d, state.w, state.h); } catch (err) { throw new Error(`${name}: ${err.message}`); }
-    if (texts.length) {
-      change(() => { state.items.unshift(...texts); });
+    const grid = C.gridFromDescription(d), n = texts.length;
+    if (n || grid) {
+      change(() => {
+        state.items.unshift(...texts);
+        if (grid) state.layout = grid;
+      });
       renderLayers();
+      showGrid();
     }
-    return texts.length;
+    return [n ? `${n} text${n === 1 ? "" : "s"}` : grid ? "" : "0 texts", grid ? "the layout grid" : ""].filter(Boolean).join(" and ");
   }
   async function unzipped(bytes) {           // the files in a ZIP: stored ones as they are, deflated ones where the browser can
     const out = [];
@@ -3150,12 +3286,12 @@ const Core = (() => {
       const from = zip ? zip.name : main ? main.name : json && json.name;
       if (main) {
         const what = await openBytes(main.name, main.bytes), bin = /\.bin$/i.test(main.name);
-        const n = bin && json ? addTexts(json.name, json.bytes) : 0;
-        toast(`Opened ${from}: ${what}${bin && json ? `, ${n} text${n === 1 ? "" : "s"} from ${json.name}` : ""}`);
+        const got = bin && json ? addTexts(json.name, json.bytes) : "";
+        toast(`Opened ${from}: ${what}${bin && json ? `, ${got} from ${json.name}` : ""}`);
         if (bin && !json) askForJson(main.name);
       } else if (json) {
-        const n = addTexts(json.name, json.bytes);
-        toast(n ? `Added ${n} text${n === 1 ? "" : "s"} from ${json.name}` : `${json.name} has no texts.`);
+        const got = addTexts(json.name, json.bytes);
+        toast(got === "0 texts" ? `${json.name} has no texts.` : `Added ${got} from ${json.name}`);
       } else throw new Error(`${files[0].name} is none of the files the editor opens: a PNG, a .bin, its .json or their ZIP.`);
     } catch (err) {
       toast(err.message || String(err), true);
@@ -3233,9 +3369,10 @@ const Core = (() => {
         (function walk(list) { for (const it of list) if (it.type === "group") walk(it.children); else if (l[it.id]) it.px = l[it.id]; })(items);
       }
       localStorage.setItem(STORE, JSON.stringify({
-        v: 4, name: state.name, device: state.device, w: state.w, h: state.h, items: C.saveItems(items),
+        v: 4, name: state.name, device: state.device, w: state.w, h: state.h, items: C.saveItems(items), layout: state.layout,
         prefs: { tool: state.tool, primary: state.primary, secondary: state.secondary, size: state.size,
-          filled: state.filled, radius: state.radius, dir: state.dir, align: state.align, textStyle: state.textStyle, font: state.font, grid: state.grid, osY: state.osY, stampTab: state.stampTab },
+          filled: state.filled, radius: state.radius, dir: state.dir, align: state.align, textStyle: state.textStyle, font: state.font, grid: state.grid, osY: state.osY, stampTab: state.stampTab,
+          layoutOn: state.layoutOn },
       }));
     } catch (err) { /* storage is a convenience */ }
   }
@@ -3247,6 +3384,7 @@ const Core = (() => {
         if (!C.fits(d.w, d.h)) return false;
         state.items = C.loadItems(d.items, d.w, d.h);
         if (d.v === 3) C.oldTexts(state.items);
+        state.layout = C.loadGrid(d.layout);
         state.w = d.w;
         state.h = d.h;
         if (untouchedExample(state.items, d.w, d.h)) {   // today's start screen takes its place
@@ -3280,12 +3418,14 @@ const Core = (() => {
       if (Object.prototype.hasOwnProperty.call(C.FONTS, p.font)) state.font = p.font;
       if (typeof p.grid === "boolean") state.grid = p.grid;
       if (typeof p.osY === "boolean") state.osY = p.osY;
+      if (typeof p.layoutOn === "boolean") state.layoutOn = p.layoutOn;
       if (["basics", "synth", "ui", "custom"].includes(p.stampTab)) state.stampTab = p.stampTab;
       return true;
     } catch (err) {
       state.w = 128;
       state.h = 64;
       state.items = C.startItems();
+      state.layout = C.loadGrid(null);
       return false;
     }
   }
@@ -3328,6 +3468,7 @@ const Core = (() => {
   renderLayers();
   loadCustom();
   renderStamps();
+  showGrid();
   loadPanels();
   renderPanels();
   sizeChanged();

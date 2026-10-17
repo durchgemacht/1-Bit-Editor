@@ -28,6 +28,10 @@ single HTML file that runs in the browser, with no build step and no dependencie
   title bar (128 × 13) and 1/2 Screen (64 × 64, dark, corners rounded 4 px) under UI.
   They bring their own dark and light pixels and float on the selected layer
   until you place them. Under Custom, Save selection keeps a selection as your own stamp (in this browser).
+- **Layout grid:** columns and rows laid over the canvas to count by, each with a count, the gap between them and the
+  margin outside them; what doesn't divide evenly goes to the first ones, a pixel each. Thin lines show their edges,
+  red for the columns and blue for the rows, never in the pixels, and the status line names the column and row under
+  the pointer. The grid is saved with the sprite and in its PNG, and the .json lists it.
 - What you draw is what the device shows: light pixels are lit, dark ones stay off. The canvas under all layers is
   light, a lit screen; for a dark screen like the OS's own, fill a layer with Dark. The left mouse button starts out
   with Dark, the right one with Light. Any color or pattern can go on either button; <kbd>X</kbd> swaps them. Moved
@@ -61,9 +65,10 @@ The PNGs show the picture of the visible layers. The layers themselves ride alon
 
 It comes with the .bin, in the same ZIP, and says what the pictures can't: the texts with their anchors (x at the left edge, middle or
 right edge, y on the bottom row of the capitals), font, alignment and style, so the device can draw them in its own
-fonts, and every layer and group with the box it covers. Coordinates are the OS's: x from the left, y from the bottom
-row, boxes as `[x0, y0, x1, y1]` with both corners included. Show an agent the PNG for the look and this file for
-the numbers. The editor uses only its own stand-in fonts, never the device's.
+fonts, and every layer and group with the box it covers. With a layout grid it also lists the columns as `[x0, x1]`
+and the rows as `[y0, y1]`, rows from the top. Coordinates are the OS's: x from the left, y from the bottom row, boxes
+as `[x0, y0, x1, y1]` with both corners included. Show an agent the PNG for the look and this file for the numbers.
+The editor uses only its own stand-in fonts, never the device's.
 
 Open a file with **Open** or by dropping it on the page: a PNG, a .bin, a .json or the .bin button's ZIP, also several at
 once. A .bin holds no texts, so the editor asks for its .json and brings them back as text layers; opening the ZIP, or

@@ -445,6 +445,29 @@ async function main() {
       throws(() => C.textsFromDescription({ format: "x", texts: [] }, W, H)) && throws(() => C.textsFromDescription({ ...d, texts: [{ x: 1.5, y: 0, text: "a" }] }, W, H)));
   }
 
+  // ---- Layout grid ----
+  {
+    const f = (size, count, gap = 0, margin = 0) => JSON.stringify(C.gridFields(size, { count, gap, margin }));
+    check("layout grid: even fields, a rest goes to the first ones (128 in 3: 43, 43, 42)", f(128, 4) === "[[0,31],[32,63],[64,95],[96,127]]" &&
+      f(128, 3) === "[[0,42],[43,85],[86,127]]", f(128, 3));
+    check("layout grid: gaps between the fields, the margin outside them", f(128, 4, 2, 4) === "[[4,32],[35,63],[66,93],[96,123]]" &&
+      f(64, 4, 2, 2) === "[[2,15],[18,31],[34,46],[49,61]]", f(128, 4, 2, 4));
+    check("layout grid: none, or fields that don't fit, give no fields", f(128, 0) === "[]" && f(10, 6, 1) === "[]" && f(8, 2, 0, 4) === "[]" &&
+      f(128, 128) !== "[]");
+    const g = C.loadGrid({ cols: { count: 4, gap: 2, margin: 4 }, rows: { count: 2, gap: 0, margin: 0 } });
+    check("layout grid: stored ones are checked, anything odd leaves that side empty", C.hasGrid(g) && !C.hasGrid(C.loadGrid(null)) &&
+      JSON.stringify(C.loadGrid({ cols: { count: 2.5, gap: 0, margin: 0 }, rows: { count: 99, gap: 0, margin: 0 } })) ===
+      JSON.stringify({ cols: { count: 0, gap: 0, margin: 0 }, rows: { count: 0, gap: 0, margin: 0 } }) && C.sameGrid(g, C.loadGrid(g)));
+    const d = C.describe([C.layer("L", 128, 64)], 128, 64, { grid: g }), lg = d.layoutGrid;
+    check("layout grid in the .json: its settings and fields, a column as [x0, x1], rows from the top as [y0, y1] in the OS's coordinates",
+      lg && lg.columns.count === 4 && JSON.stringify(lg.columns.fields) === "[[4,32],[35,63],[66,93],[96,123]]" &&
+      JSON.stringify(lg.rows.fields) === "[[32,63],[0,31]]" && !("layoutGrid" in C.describe([], 128, 64)), JSON.stringify(lg));
+    check("layout grid: it comes back from the .json, none from one without", C.sameGrid(C.gridFromDescription(JSON.parse(JSON.stringify(d))), g) &&
+      C.gridFromDescription({ format: "1-bit-editor screen" }) === null);
+    const png = await C.encodePng(C.bitmap(8, 4), 1, { grid: g });
+    check("layout grid: the PNG's text chunk keeps it", C.sameGrid(C.loadGrid(C.readPngMeta(png).grid), g));
+  }
+
   // ---- Stamps ----
   {
     const ids = C.STAMPS.map(s => s.id), cats = C.STAMP_CATS.map(([c]) => c), _ = C.CLEAR;
