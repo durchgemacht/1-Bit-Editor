@@ -126,6 +126,8 @@ Open `index.html` in a browser. To put it online, serve the folder as it is, for
 | <kbd>Enter</kbd>, <kbd>Esc</kbd> | Place moved pixels or text; deselect or drop the text |
 | <kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd> | Zoom in, zoom out, fit |
 | <kbd>⌘/Ctrl</kbd> <kbd>S</kbd>, <kbd>⌘/Ctrl</kbd> <kbd>O</kbd> | Save PNG, open a file |
+| <kbd>Shift</kbd> <kbd>R</kbd>, <kbd>Shift</kbd> <kbd>G</kbd> | Show or hide the rulers, the layout grid |
+| <kbd>⌘/Ctrl</kbd> <kbd>'</kbd>, <kbd>⌘/Ctrl</kbd> <kbd>;</kbd> | Show or hide the pixel grid, the guides (Ä and Ö on a German keyboard) |
 | <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Enter</kbd>, <kbd>Delete</kbd> in the layer list | The layer above or below, rename, delete |
 
 ## Tests

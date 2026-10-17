@@ -11,6 +11,8 @@
   pixel edges and show in cyan; while one is dragged, the ruler shows its position; the Move tool moves them, and off
   the canvas they go. **Clear guides** removes them all, and **Guides** and **Rulers** at the bottom hide them. They
   are saved like the layout grid, and the .json lists them, y counted from the bottom.
+- **Shortcuts** to show or hide: Shift+R the rulers, Shift+G the layout grid and ⌘/Ctrl ' the pixel grid, as in Figma;
+  ⌘/Ctrl ; the guides, as in Photoshop and Affinity. On a German keyboard the last two are Ä and Ö.
 
 ## 0.1 (2026-10-17)
 
