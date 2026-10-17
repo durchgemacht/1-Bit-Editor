@@ -55,8 +55,8 @@ Not affiliated with Elektron. Model:Cycles and Model:Samples are Elektron produc
   --oled-off: #0b0c0d;
   --oled-glow: rgba(242, 241, 234, 0.35);
   --grid: rgba(128, 128, 128, 0.32);
-  --layout-col: rgba(255, 69, 58, 0.9);       /* the layout grid lies on the screen, so it keeps its colors in both themes */
-  --layout-row: rgba(10, 132, 255, 0.9);
+  --layout: rgba(255, 69, 58, 0.9);           /* the layout grid and the guides lie on the screen, so they keep their colors */
+  --guide: rgba(0, 199, 255, 0.95);           /* in both themes */
   --scrim: rgba(10, 10, 12, 0.5);
   --hover: rgba(48, 38, 24, 0.06);
   --sel: rgba(163, 86, 10, 0.14);
@@ -156,6 +156,13 @@ svg.i .solid { fill: currentColor; stroke: none; }
 .tool[aria-pressed="true"] { border-color: var(--muted); }
 .tool[aria-pressed="true"]::before { background: var(--led); box-shadow: 0 0 6px var(--led); }
 
+.stage-wrap { --ruler: 18px; display: grid; grid-template-columns: var(--ruler) minmax(0, 1fr); grid-template-rows: var(--ruler) minmax(0, 1fr); gap: 2px; min-width: 0; min-height: 0; }
+.stage-wrap.no-rulers { --ruler: 0px; gap: 0; }
+.stage-wrap.no-rulers > .ruler { display: none; }
+.stage-wrap > .stage { grid-column: 2; grid-row: 2; }
+.ruler { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; border-radius: 4px; touch-action: none; }
+#ruler-x { grid-column: 2; grid-row: 1; cursor: ns-resize; }   /* a guide is pulled out of it */
+#ruler-y { grid-column: 1; grid-row: 2; cursor: ew-resize; }
 .stage { position: relative; display: flex; min-width: 0; min-height: 0; overflow: auto; padding: 16px; background: var(--inset); border: 1px solid var(--line); border-radius: 10px; }
 .bezel { position: relative; margin: auto; padding: var(--frame, 14px); background: var(--bezel); border-radius: calc(var(--frame, 14px) * 0.65); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05) inset, 0 8px 24px rgba(0, 0, 0, 0.28); touch-action: none; cursor: crosshair; user-select: none; -webkit-user-select: none; }
 .bezel canvas { display: block; }
@@ -276,6 +283,8 @@ body.arranging, body.arranging * { cursor: grabbing !important; user-select: non
 .layout-axis { font-size: 12px; color: var(--muted); }
 .layout-form input { width: 100%; min-width: 0; height: 28px; padding: 0 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--key); font-variant-numeric: tabular-nums; }
 .layout-sizes { margin: 8px 0 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.layout-guides { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.layout-guides .btn { flex: none; height: 28px; font-size: 12px; }
 .preview-wrap { display: grid; place-items: center; padding: 10px; background: var(--bezel); border-radius: 8px; overflow: hidden; }
 #preview { display: block; filter: drop-shadow(0 0 1.5px var(--oled-glow)); }
 
@@ -392,14 +401,18 @@ dialog p { margin: 8px 0; max-width: 62ch; }
       <button class="tool" type="button" data-tool="text" data-key="T" aria-label="Text" aria-describedby="tip-text"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5V5h14v2.5M12 5v14M9 19h6"/></svg><span class="tip-src" id="tip-text" hidden>Click to put a text layer there, then type; <kbd>Enter</kbd> finishes. Click a text to edit it, drag it to move it. The .bin leaves text out: the device draws it in its own font.</span></button>
     </nav>
 
-    <section class="stage" id="stage" aria-label="Canvas">
-      <div class="bezel" id="bezel">
-        <div class="paper" id="paper">
-          <canvas id="canvas" role="img" aria-label="Sprite"></canvas>
-          <canvas id="overlay" aria-hidden="true"></canvas>
+    <div class="stage-wrap" id="stage-wrap">
+      <canvas class="ruler" id="ruler-x" aria-hidden="true" title="Drag down from here for a guide across"></canvas>
+      <canvas class="ruler" id="ruler-y" aria-hidden="true" title="Drag right from here for a guide down"></canvas>
+      <section class="stage" id="stage" aria-label="Canvas">
+        <div class="bezel" id="bezel">
+          <div class="paper" id="paper">
+            <canvas id="canvas" role="img" aria-label="Sprite"></canvas>
+            <canvas id="overlay" aria-hidden="true"></canvas>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
 
     <aside class="side">
       <section class="panel colors" data-panel="colors" aria-labelledby="h-colors">
@@ -475,7 +488,8 @@ dialog p { margin: 8px 0; max-width: 62ch; }
           <input type="number" id="lg-rows-margin" data-axis="rows" data-key="margin" min="0" max="64" step="1" inputmode="numeric" aria-label="Margin above and below the rows, in pixels">
         </div>
         <p class="layout-sizes" id="layout-sizes" aria-live="polite"></p>
-        <p class="sr-only" id="layout-help">Columns and rows laid over the canvas to count by. They are never part of the pixels; they are saved with the sprite and listed in the .json. A count of 0 leaves that side out.</p>
+        <div class="layout-guides"><span id="guides-count" aria-live="polite"></span><button class="btn" id="btn-guides-clear" type="button" title="Remove all guides">Clear guides</button></div>
+        <p class="sr-only" id="layout-help">Columns and rows laid over the canvas to count by. They are never part of the pixels; they are saved with the sprite and listed in the .json. A count of 0 leaves that side out. Guides are dragged out of the rulers.</p>
       </section>
     </aside>
   </main>
@@ -489,6 +503,8 @@ dialog p { margin: 8px 0; max-width: 62ch; }
       <button class="mini" id="zoom-fit" type="button" title="Fit the window (0)">Fit</button>
       <label class="check" for="grid"><input type="checkbox" id="grid" checked>Grid</label>
       <label class="check" for="layout-on" title="Show the columns and rows of the Layout grid panel"><input type="checkbox" id="layout-on" checked>Layout</label>
+      <label class="check" for="guides-on" title="Show the guides; drag new ones out of the rulers"><input type="checkbox" id="guides-on" checked>Guides</label>
+      <label class="check" for="rulers-on" title="Show the rulers above and left of the canvas"><input type="checkbox" id="rulers-on" checked>Rulers</label>
       <label class="check" for="os-y" title="Count y from the bottom row, as the OS does: y = 0 is the bottom"><input type="checkbox" id="os-y">OS y</label>
     </span>
   </footer>
@@ -519,7 +535,9 @@ dialog p { margin: 8px 0; max-width: 62ch; }
   <p>Drag a stamp from the Stamps panel onto the canvas, or click it to put it in the middle. It floats on the selected layer like pasted pixels: drag it or nudge it with the arrow keys, then press <kbd>Enter</kbd> or click next to it. <kbd>Delete</kbd> throws it away. Stamps bring their own dark and lit pixels; where they are transparent, what lies below stays.</p>
   <p>To keep your own, select an area and press <b>Save selection</b> under Custom. Your stamps stay in this browser.</p>
   <h3>Layout grid</h3>
-  <p>The Layout grid panel lays columns and rows over the canvas to count by. For each you set how many, the gap between them and the margin outside them, in pixels; what doesn't divide evenly goes to the first ones, a pixel each. Thin lines show their edges, red for the columns and blue for the rows; they are never part of the pixels, and <b>Layout</b> at the bottom hides them. The status line names the column and row under the pointer. The grid is saved with the sprite and in its PNG, and the .json lists it.</p>
+  <p>The Layout grid panel lays columns and rows over the canvas to count by. For each you set how many, the gap between them and the margin outside them, in pixels; what doesn't divide evenly goes to the first ones, a pixel each. Thin red lines show their edges; they are never part of the pixels, and <b>Layout</b> at the bottom hides them. The status line names the column and row under the pointer. The grid is saved with the sprite and in its PNG, and the .json lists it.</p>
+  <h3>Guides and rulers</h3>
+  <p>Rulers run along the top and the left of the canvas; y counts as the status line does. Drag down out of the top ruler for a guide across, or right out of the left one for a guide down. A guide lies on the edge between two pixels and shows in cyan; while you drag it, the ruler and the status line show where it lands. Move it with the Move tool, and drag it off the canvas to remove it. <b>Clear guides</b> in the Layout grid panel removes them all. <b>Guides</b> and <b>Rulers</b> at the bottom hide them. Guides are saved like the layout grid, and the .json lists them.</p>
   <h3>Keys</h3>
   <div class="keys">
     <span><kbd>V</kbd></span><span>Move the selected layers</span>
@@ -1053,7 +1071,7 @@ const Core = (() => {
   // which the device draws in its own fonts, and the layers with the boxes they cover. Coordinates as the OS's drawing
   // calls take them: x from the left, y from the bottom row (0); a box is [x0, y0, x1, y1], both corners included. ----
 
-  function describe(items, w, h, { name = "sprite", device = "models", files = {}, grid = null } = {}) {
+  function describe(items, w, h, { name = "sprite", device = "models", files = {}, grid = null, guides = null } = {}) {
     const box = r => r && [r.x, h - r.y - r.h, r.x + r.w - 1, h - 1 - r.y];
     const texts = [], layers = [];
     (function walk(list, path, shown) {
@@ -1081,6 +1099,12 @@ const Core = (() => {
         note: "The columns and rows the screen is laid out by; the device draws none of it. A column is [x0, x1], a row [y0, y1] in the OS's coordinates, both ends included; rows are listed from the top.",
         columns: { ...grid.cols, fields: gridFields(w, grid.cols) },
         rows: { ...grid.rows, fields: gridFields(h, grid.rows).map(([a, b]) => [h - 1 - b, h - 1 - a]) },
+      };
+    }
+    if (hasGuides(guides)) {
+      out.guides = {
+        note: "Guides the screen was laid out by; the device draws none of them. They lie on pixel edges: x 32 runs between the columns 31 and 32, y 32 between the rows 31 and 32, counted from the bottom.",
+        x: guides.x.slice(), y: guides.y.map(v => h - v).sort((a, b) => a - b),
       };
     }
     return out;
@@ -1126,6 +1150,19 @@ const Core = (() => {
   function gridFromDescription(d) {          // the layout grid a .json from describe() holds, or null
     const g = d && d.layoutGrid;
     return g && typeof g === "object" ? loadGrid({ cols: g.columns, rows: g.rows }) : null;
+  }
+
+  // ---- Guides: lines on pixel edges, pulled out of the rulers. In canvas terms y counts from the top: a guide at x 32
+  // runs between the columns 31 and 32, one at y 0 along the top edge. ----
+
+  function loadGuides(g, w = MAX_W, h = MAX_H) {   // stored guides, checked: whole edges within the canvas, each once, in order
+    const axis = (list, n) => (Array.isArray(list) ? [...new Set(list.filter(v => Number.isInteger(v) && v >= 0 && v <= n))].sort((a, b) => a - b) : []);
+    return { x: axis(g && g.x, w), y: axis(g && g.y, h) };
+  }
+  const hasGuides = g => !!g && (g.x.length > 0 || g.y.length > 0);
+  function guidesFromDescription(d, w, h) {  // the guides a .json from describe() holds (y from the bottom), or null
+    const g = d && d.guides;
+    return g && typeof g === "object" ? loadGuides({ x: g.x, y: Array.isArray(g.y) ? g.y.map(v => h - v) : [] }, w, h) : null;
   }
 
   // ---- .bin: the layout of the OS's own sprites, checked against the Model:Cycles OS 1.13 sprites and the
@@ -1230,7 +1267,7 @@ const Core = (() => {
     return concat([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("tEXt", meta),
       chunk("IDAT", await zlib(rows)), chunk("IEND", new Uint8Array(0))]);
   }
-  function readPngMeta(bytes) {              // {w, h, scale[, v, device, layers, grid]} from our tEXt chunk, or null
+  function readPngMeta(bytes) {              // {w, h, scale[, v, device, layers, grid, guides]} from our tEXt chunk, or null
     if (!isPng(bytes)) return null;
     const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     for (let o = 8; o + 12 <= bytes.length;) {
@@ -1247,6 +1284,7 @@ const Core = (() => {
             if (typeof m.device === "string") out.device = m.device;
             if (Array.isArray(m.layers)) out.layers = m.layers;
             if (m.grid && typeof m.grid === "object") out.grid = m.grid;
+            if (m.guides && typeof m.guides === "object") out.guides = m.guides;
             return out;
           } catch (err) { return null; }
         }
@@ -1398,6 +1436,7 @@ const Core = (() => {
     binSize, toBin, fromBin, sizeFromName, baseName,
     crc32, zlibStored, isPng, encodePng, readPngMeta, fromRgba, fitScale, downscale, zipOne, zipFiles, readZip, describe,
     textsFromDescription, bounds, GRID_MAX, gridFields, loadGrid, hasGrid, sameGrid, gridFromDescription,
+    loadGuides, hasGuides, guidesFromDescription,
     pack, unpack, startItems, oldExampleLayers, oldExample,
   };
 })();
@@ -1415,6 +1454,7 @@ const Core = (() => {
   const overlay = $("overlay"), octx = overlay.getContext("2d");
   const pview = $("preview"), pctx = pview.getContext("2d");
   const stage = $("stage"), bezel = $("bezel"), paper = $("paper"), textInput = $("text-input"), fileInput = $("file-input");
+  const stageWrap = $("stage-wrap"), rulerX = $("ruler-x"), rulerY = $("ruler-y");
   const nameInput = $("doc-name"), sizeSelect = $("doc-size");
 
   const TOOLS = ["move", "brush", "line", "rect", "roundrect", "ellipse", "triangle", "fill", "select", "text"];
@@ -1457,12 +1497,13 @@ const Core = (() => {
     // Pixels nothing was drawn on are clear, so Clear, new canvas area and moved or deleted pixels show what is below.
     name: "example", w: 128, h: 64, items: C.startItems(),
     layout: C.loadGrid(null),               // the layout grid's columns and rows (Core: gridFields), none at first
+    guides: C.loadGuides(null),             // guides on pixel edges {x: [...], y: [...]}, y from the top
     selected: new Set(), active: null,      // the layers panel selection (ids) and the item last clicked
     tool: "brush", primary: "off", secondary: "on", size: 1, filled: false, radius: 2, dir: "up", font: "regular", stampTab: "basics",
     align: "left", textStyle: "inverted",   // for new text layers (dark on the light canvas); a selected one shows its own
     device: "models",   // what the sprite is for; only the Model:Cycles / Model:Samples screen so far
     zoom: 8, fit: true, grid: true, osY: false,   // osY: the status line counts y from the bottom, like the OS
-    layoutOn: true,                               // whether the layout grid shows
+    layoutOn: true, guidesOn: true, rulersOn: true,   // whether the layout grid, the guides and the rulers show
     sel: null,      // selected rectangle {x, y, w, h}, inside the canvas
     float: null,    // pixels being moved {b, x, y, before, layerId}, drawn on top until they are placed
     text: null,     // text being typed {x, y, value, ink, layerId}
@@ -1473,6 +1514,7 @@ const Core = (() => {
   const font = () => C.FONTS[state.font];
   const view = it => ({ w: state.w, h: state.h, px: it.px });      // a layer as a bitmap for Core's drawing
   let drag = null, clip = null, antsPhase = 0;
+  let guideDrag = null, hoverGuide = null;   // a guide being pulled {id, axis, from, at}; the one under the Move tool {axis, edge}
   let lastP = null, spaceHeld = false;      // the pixel under the pointer, also off the canvas; Space held during a drag
 
   function find(id, list = state.items, parent = null) {           // -> {item, list, index, parent} or null
@@ -1562,9 +1604,10 @@ const Core = (() => {
 
   const history = { undo: [], redo: [] };
   const snapshot = () => ({ w: state.w, h: state.h, items: C.cloneItems(state.items), layout: C.loadGrid(state.layout),
-    selected: [...state.selected], active: state.active });
+    guides: C.loadGuides(state.guides, state.w, state.h), selected: [...state.selected], active: state.active });
   function record(before) {                 // keeps `before` as an undo step if the document changed since
-    if (before.w === state.w && before.h === state.h && C.sameItems(before.items, state.items) && C.sameGrid(before.layout, state.layout)) return false;
+    if (before.w === state.w && before.h === state.h && C.sameItems(before.items, state.items) && C.sameGrid(before.layout, state.layout) &&
+      JSON.stringify(before.guides) === JSON.stringify(state.guides)) return false;
     history.undo.push(before);
     if (history.undo.length > 200) history.undo.shift();
     history.redo.length = 0;
@@ -1573,7 +1616,7 @@ const Core = (() => {
   }
   function change(fn) { const before = snapshot(); fn(); return record(before); }
   function step(from, to) {
-    if (drag || press || stampPress) return;
+    if (drag || press || stampPress || guideDrag) return;
     place();
     const s = from.pop();
     if (!s) return;
@@ -1583,6 +1626,7 @@ const Core = (() => {
     state.h = s.h;
     state.items = s.items;
     state.layout = s.layout;
+    state.guides = s.guides;
     gridBefore = null;                       // an edit going on starts afresh from here
     showGrid();
     for (const g of inOrder()) if (open.has(g.id)) g.open = open.get(g.id);   // folding a group isn't undone
@@ -1796,7 +1840,7 @@ const Core = (() => {
   const reach = p => [Math.max(-256, Math.min(state.w + 256, p[0])), Math.max(-256, Math.min(state.h + 256, p[1]))];
 
   bezel.addEventListener("pointerdown", e => {
-    if ((e.button !== 0 && e.button !== 2) || drag) return;
+    if ((e.button !== 0 && e.button !== 2) || drag || guideDrag) return;
     e.preventDefault();
     const a = document.activeElement;           // keys are for the canvas again: Delete clears pixels, Space can't press a button
     if (a && a !== document.body && a !== textInput && a.blur) a.blur();
@@ -1814,6 +1858,9 @@ const Core = (() => {
       if (!l) return;
       drag = { tool: t, id: e.pointerId, ink, start: p, end: p, base: C.clone(view(l)), before: snapshot(), layer: l };
       shapePreview(e.shiftKey);
+    } else if (t === "move" && e.button === 0 && guideNear(e)) {
+      const g = guideNear(e);
+      startGuide(e, g.axis, g.edge);
     } else if (t === "move") {
       const ids = moveTargets();
       if (!ids) return;
@@ -1846,9 +1893,11 @@ const Core = (() => {
     }
   });
   bezel.addEventListener("pointermove", e => {
+    if (guideDrag && e.pointerId === guideDrag.id) { moveGuide(e); return; }
     const p = pixelAt(e);
     lastP = p;
     state.hover = onCanvas(p) ? p : null;
+    hoverGuide = !drag && state.tool === "move" ? guideNear(e) : null;
     setCursor(p);
     if (!drag || e.pointerId !== drag.id) { updatePos(); drawOverlay(); return; }
     const q = reach(p);
@@ -1900,9 +1949,12 @@ const Core = (() => {
     if (d.tool === "move" && state.shift) { state.shift.dx = d.dx; state.shift.dy = d.dy; }   // back to where this drag began
     render();
   }
-  bezel.addEventListener("pointerup", endDrag);
-  bezel.addEventListener("pointercancel", e => { if (drag && e.pointerId === drag.id) cancelDrag(); });
-  bezel.addEventListener("pointerleave", () => { if (!drag) { state.hover = lastP = null; updatePos(); drawOverlay(); } });
+  bezel.addEventListener("pointerup", e => (guideDrag && e.pointerId === guideDrag.id ? dropGuide(e) : endDrag(e)));
+  bezel.addEventListener("pointercancel", e => {
+    if (guideDrag && e.pointerId === guideDrag.id) cancelGuide();
+    else if (drag && e.pointerId === drag.id) cancelDrag();
+  });
+  bezel.addEventListener("pointerleave", () => { if (!drag && !guideDrag) { state.hover = lastP = hoverGuide = null; updatePos(); drawOverlay(); } });
   bezel.addEventListener("contextmenu", e => e.preventDefault());
 
   function shapePreview(shift) {
@@ -1929,7 +1981,8 @@ const Core = (() => {
       (state.tool === "text" && ((!!state.text && inside(p, textBox())) || !!textAt(p)));
   }
   function setCursor(p) {                    // over the canvas the yellow marker stands in for the pointer; moving keeps the move cursor
-    const c = movesHere(p) ? "move" : onCanvas(p) ? "none" : "crosshair";
+    const g = guideDrag || hoverGuide;       // a guide being pulled, or one the Move tool would pick up
+    const c = g ? (g.axis === "x" ? "ew-resize" : "ns-resize") : movesHere(p) ? "move" : onCanvas(p) ? "none" : "crosshair";
     if (bezel.style.cursor !== c) bezel.style.cursor = c;
   }
   function marker() {                        // the box the marker draws, in sprite pixels: what the tool will touch
@@ -1947,6 +2000,7 @@ const Core = (() => {
     if (e.target.closest && e.target.closest("input, select, textarea")) return;
     if (press) { if (e.key === "Escape") { e.preventDefault(); stopPress(); } return; }   // a layer row is held
     if (panelPress) { if (e.key === "Escape") { e.preventDefault(); stopPanelPress(); } return; }   // a panel is held
+    if (guideDrag) { if (e.key === "Escape") { e.preventDefault(); cancelGuide(); } return; }   // a guide is being pulled
     if (stampPress) {                          // a stamp is held: Esc drops it
       if (e.key === "Escape") { e.preventDefault(); const sp = stampPress; stopStamp(); if (sp.drag) { state.float = null; render(); } }
       return;
@@ -2072,7 +2126,8 @@ const Core = (() => {
     octx.clearRect(0, 0, overlay.width, overlay.height);
     const lw = Math.max(1, Math.round(dpr));
     octx.lineWidth = lw;
-    if (state.layoutOn) drawLayout(at, lw);    // under the markers
+    if (state.layoutOn) drawLayout(at, lw);    // under the guides and the markers
+    drawGuides(at, lw);
     if (lastP) setCursor(lastP);               // the cursor follows tool changes and new selections, too
     const m = marker();
     if (m) {
@@ -2092,15 +2147,26 @@ const Core = (() => {
         octx.fillRect(at(t.x + (w ? w + 1 : 0)), at(t.y), Math.max(lw, Math.round(k / 3)), at(t.y + f.ascent) - at(t.y));
       }
     }
+    drawRulers();
   }
   function drawLayout(at, lw) {              // the layout grid: the edges of its fields as lines
     const W = overlay.width, H = overlay.height;
     const cols = C.gridFields(state.w, state.layout.cols), rows = C.gridFields(state.h, state.layout.rows);
     const edges = fields => [...new Set(fields.flatMap(([a, b]) => [a, b + 1]))];   // fields side by side share one
-    octx.fillStyle = token("--layout-col");
+    octx.fillStyle = token("--layout");
     for (const x of edges(cols)) octx.fillRect(Math.min(W - lw, at(x)), 0, lw, H);
-    octx.fillStyle = token("--layout-row");
     for (const y of edges(rows)) octx.fillRect(0, Math.min(H - lw, at(y)), W, lw);
+  }
+  function shownGuides(axis) {               // the guides as they show: the one being pulled where it would land, not where it was
+    const g = guideDrag, list = state.guidesOn ? state.guides[axis].filter(v => !(g && g.axis === axis && v === g.from)) : [];
+    if (g && g.axis === axis && g.at !== null) list.push(g.at);
+    return list;
+  }
+  function drawGuides(at, lw) {              // the guides, a line lw device pixels wide from their edge on (the last one inside)
+    const W = overlay.width, H = overlay.height;
+    octx.fillStyle = token("--guide");
+    for (const v of shownGuides("x")) octx.fillRect(Math.min(W - lw, at(v)), 0, lw, H);
+    for (const v of shownGuides("y")) octx.fillRect(0, Math.min(H - lw, at(v)), W, lw);
   }
   function ants(x, y, w, h, lw, dpr) {
     octx.setLineDash([]);
@@ -2133,6 +2199,12 @@ const Core = (() => {
     updatePos();
   }
   function updatePos() {
+    if (guideDrag) {                           // where the guide would land, or that it goes
+      const g = guideDrag, os = g.axis === "y" && state.osY;
+      $("st-pos").textContent = g.at === null ? (g.from === null ? "guide: drag it onto the canvas" : "guide: let go to remove it")
+        : `guide ${g.axis} ${os ? state.h - g.at : g.at}${os ? " (OS)" : ""}`;
+      return;
+    }
     const y = state.hover && (state.osY ? state.h - 1 - state.hover[1] : state.hover[1]);
     let s = state.hover ? `x ${state.hover[0]}  y ${y}${state.osY ? " (OS)" : ""}` : "x –  y –";
     if (state.hover && state.layoutOn) {       // where the pointer is in the layout grid: a field, a gap or the margin
@@ -2149,6 +2221,7 @@ const Core = (() => {
     if (state.shift && (state.shift.dx || state.shift.dy)) s += `  ·  moved ${signed(state.shift.dx)}, ${signed(state.shift.dy)}`;
     const r = selRect();
     if (r) s += `  ·  selection ${r.w} × ${r.h}`;
+    if (hoverGuide) s += `  ·  guide ${hoverGuide.axis} ${hoverGuide.axis === "y" && state.osY ? state.h - hoverGuide.edge : hoverGuide.edge}`;
     $("st-pos").textContent = s;
   }
 
@@ -2186,6 +2259,12 @@ const Core = (() => {
   function showGrid(typing = null) {         // the panel and the footer switch follow the document's layout grid
     for (const el of gridInputs) if (el !== typing) el.value = String(state.layout[el.dataset.axis][el.dataset.key]);
     $("layout-on").checked = state.layoutOn;
+    $("guides-on").checked = state.guidesOn;
+    $("rulers-on").checked = state.rulersOn;
+    stageWrap.classList.toggle("no-rulers", !state.rulersOn);
+    const n = state.guides.x.length + state.guides.y.length;
+    $("guides-count").textContent = n ? `${n} guide${n === 1 ? "" : "s"}` : state.rulersOn ? "No guides: drag one out of a ruler" : "No guides";
+    $("btn-guides-clear").disabled = !n;
     const sizes = (name, size, a) => {
       if (!a.count) return `no ${name}`;
       const n = C.gridFields(size, a).map(([s, e]) => e - s + 1);
@@ -2212,6 +2291,111 @@ const Core = (() => {
     });
   }
   $("layout-on").addEventListener("change", e => { state.layoutOn = e.target.checked; render(); save(); });
+  $("guides-on").addEventListener("change", e => { state.guidesOn = e.target.checked; hoverGuide = null; render(); save(); });
+  $("rulers-on").addEventListener("change", e => { state.rulersOn = e.target.checked; showGrid(); render(); save(); });
+  $("btn-guides-clear").addEventListener("click", () => { change(() => { state.guides = C.loadGuides(null); }); showGrid(); render(); });
+
+  // ---- Guides: pulled out of a ruler (the top one gives guides across, the left one guides down), moved with the
+  // Move tool, gone when let go off the canvas. They lie on pixel edges. ----
+
+  function edgeAt(e, axis) {                 // the pixel edge nearest the pointer along the axis, or null off the stage or canvas
+    const r = canvas.getBoundingClientRect(), st = stage.getBoundingClientRect(), x = axis === "x", n = x ? state.w : state.h;
+    const v = (x ? e.clientX - r.left : e.clientY - r.top) / ((x ? r.width : r.height) / n);
+    const onStage = e.clientX >= st.left && e.clientX <= st.right && e.clientY >= st.top && e.clientY <= st.bottom;
+    return onStage && v >= -0.5 && v <= n + 0.5 ? Math.max(0, Math.min(n, Math.round(v))) : null;
+  }
+  function guideNear(e) {                    // a shown guide within 5 CSS pixels of the pointer {axis, edge}, or null
+    if (!state.guidesOn) return null;
+    const r = canvas.getBoundingClientRect(), ux = r.width / state.w, uy = r.height / state.h;
+    let best = null, gap = 5;
+    for (const v of state.guides.x) { const d = Math.abs(e.clientX - (r.left + v * ux)); if (d <= gap) { gap = d; best = { axis: "x", edge: v }; } }
+    for (const v of state.guides.y) { const d = Math.abs(e.clientY - (r.top + v * uy)); if (d <= gap) { gap = d; best = { axis: "y", edge: v }; } }
+    return best;
+  }
+  function startGuide(e, axis, from = null) {
+    guideDrag = { id: e.pointerId, axis, from, at: from };
+    if (!state.guidesOn) { state.guidesOn = true; showGrid(); }
+    setCursor(lastP || [-1, -1]);
+    drawOverlay();
+    updatePos();
+  }
+  function moveGuide(e) {
+    guideDrag.at = edgeAt(e, guideDrag.axis);
+    drawOverlay();
+    updatePos();
+  }
+  function dropGuide(e) {                    // one undo step: a new guide, a moved one, or one let go off the canvas
+    moveGuide(e);
+    const g = guideDrag;
+    guideDrag = null;
+    change(() => {
+      const list = state.guides[g.axis].filter(v => v !== g.from);
+      if (g.at !== null) list.push(g.at);
+      state.guides = { ...state.guides, [g.axis]: [...new Set(list)].sort((a, b) => a - b) };
+    });
+    hoverGuide = null;
+    showGrid();
+    render();
+  }
+  function cancelGuide() { guideDrag = null; render(); }
+  for (const [el, axis] of [[rulerX, "y"], [rulerY, "x"]]) {
+    el.addEventListener("pointerdown", e => {
+      if (e.button !== 0 || drag || guideDrag) return;
+      e.preventDefault();
+      el.setPointerCapture(e.pointerId);
+      startGuide(e, axis);
+    });
+    el.addEventListener("pointermove", e => { if (guideDrag && e.pointerId === guideDrag.id) moveGuide(e); });
+    el.addEventListener("pointerup", e => { if (guideDrag && e.pointerId === guideDrag.id) dropGuide(e); });
+    el.addEventListener("pointercancel", e => { if (guideDrag && e.pointerId === guideDrag.id) cancelGuide(); });
+  }
+
+  // ---- Rulers: the pixel edges along the top and the left of the stage, lined up with the canvas wherever it scrolls.
+  // Numbers every few pixels, y as the status line counts it; the pixel under the pointer and the guides are marked. ----
+
+  function drawRulers() {
+    if (!state.rulersOn) return;
+    const dpr = window.devicePixelRatio || 1, r = canvas.getBoundingClientRect(), lw = Math.max(1, Math.round(dpr));   // as the guides
+    for (const [el, axis] of [[rulerX, "x"], [rulerY, "y"]]) {
+      const box = el.getBoundingClientRect();
+      if (!box.width || !box.height) continue;
+      fitCanvas(el, box.width, box.height);
+      const g = el.getContext("2d"), x = axis === "x", n = x ? state.w : state.h;
+      const unit = (x ? r.width : r.height) / n, origin = x ? r.left - box.left : r.top - box.top;   // CSS pixels
+      const W = el.width, H = el.height, deep = x ? H : W, at = v => Math.round((origin + v * unit) * dpr);
+      const label = [1, 2, 4, 8, 16, 32, 64].find(k => k * unit >= 26) || 128, minor = [1, 2, 4, 8, 16].find(k => k * unit >= 4) || label;
+      g.fillStyle = token("--panel");
+      g.fillRect(0, 0, W, H);
+      if (state.hover) {
+        const v = state.hover[x ? 0 : 1];
+        g.fillStyle = token("--sel");
+        if (x) g.fillRect(at(v), 0, at(v + 1) - at(v), H); else g.fillRect(0, at(v), W, at(v + 1) - at(v));
+      }
+      g.fillStyle = token("--muted");
+      g.font = `${9 * dpr}px ${token("--font-mono")}`;
+      g.textBaseline = "top";
+      for (let v = 0; v <= n; v += minor) {
+        const len = Math.round(deep * (v % label === 0 ? 0.55 : label > 1 && v % (label / 2) === 0 ? 0.35 : 0.2)), p = at(v);
+        if (x) g.fillRect(p, H - len, lw, len); else g.fillRect(W - len, p, len, lw);
+        if (v % label) continue;
+        const t = String(x || !state.osY ? v : n - v);
+        if (x) g.fillText(t, p + 2 * dpr, 2 * dpr); else g.fillText(t, 2 * dpr, p + 2 * dpr);
+      }
+      const mark = Math.round(deep * 0.55), on = v => (v === n ? at(v) - lw : at(v));   // where the guide's line lies on the canvas
+      g.fillStyle = token("--guide");
+      for (const v of shownGuides(axis)) { if (x) g.fillRect(on(v), H - mark, lw, mark); else g.fillRect(W - mark, on(v), mark, lw); }
+      const d = guideDrag;
+      if (!d || d.axis !== axis || d.at === null) continue;
+      const t = String(x || !state.osY ? d.at : n - d.at), tw = Math.ceil(g.measureText(t).width) + 4 * dpr, th = 11 * dpr;
+      let bx = x ? on(d.at) + lw + dpr : dpr, by = x ? dpr : on(d.at) + lw + dpr;   // the number of the guide being pulled
+      if (x && bx + tw > W) bx = on(d.at) - dpr - tw;
+      if (!x && by + th > H) by = on(d.at) - dpr - th;
+      g.fillRect(bx, by, tw, th);
+      g.fillStyle = token("--oled-off");
+      g.fillText(t, bx + 2 * dpr, by + dpr);
+    }
+  }
+  stage.addEventListener("scroll", drawRulers, { passive: true });
 
   // ---- Size ----
 
@@ -2238,6 +2422,7 @@ const Core = (() => {
     if (w !== state.w || h !== state.h) {
       change(() => {                           // every layer keeps its top-left corner; new area is clear
         for (const it of inOrder()) if (it.type === "layer") it.px = C.resize(view(it), w, h, C.CLEAR).px;
+        state.guides = C.loadGuides(state.guides, w, h);   // guides off a smaller canvas go
         state.w = w;
         state.h = h;
       });
@@ -3166,14 +3351,14 @@ const Core = (() => {
   async function savePng(scale) {
     place();
     const name = scale > 1 ? `${fileBase()}@${scale}x.png` : `${fileBase()}.png`;
-    // The picture as the device shows it (white = lit = light here), plus the layers and the layout grid. Version 3: not
-    // inverted, unlike 2.
+    // The picture as the device shows it (white = lit = light here), plus the layers, the layout grid and the guides.
+    // Version 3: not inverted, unlike 2.
     const png = await C.encodePng(composite(), scale, { v: 3, device: state.device, layers: C.saveItems(state.items),
-      ...(C.hasGrid(state.layout) ? { grid: state.layout } : {}) });
+      ...(C.hasGrid(state.layout) ? { grid: state.layout } : {}), ...(C.hasGuides(state.guides) ? { guides: state.guides } : {}) });
     if (await offer(name, png, "image/png")) toast(`Saved ${name}`);
   }
   function describeJson(base) {              // the screen described (Core: describe), number pairs and boxes kept on one line
-    const about = C.describe(state.items, state.w, state.h, { name: state.name, device: state.device, grid: state.layout,
+    const about = C.describe(state.items, state.w, state.h, { name: state.name, device: state.device, grid: state.layout, guides: state.guides,
       files: { bin: `${base}.bin`, png: `${base}.png`, png8: `${base}@8x.png` } });
     return new TextEncoder().encode(`${JSON.stringify(about, null, 2).replace(/\[\s+(-?\d+(?:,\s+-?\d+)*)\s+\]/g, (m, n) => `[${n.split(/,\s+/).join(", ")}]`)}\n`);
   }
@@ -3212,28 +3397,30 @@ const Core = (() => {
     }
     if (meta && meta.v === 2) b = C.invert(b);   // white = lit = light, except in the PNGs of version 2, which were inverted
     const sprite = C.toSprite(b);
-    let layers = null, grid = null;            // a PNG this editor saved carries its layers and its layout grid
+    let layers = null, grid = null, guides = null;   // a PNG this editor saved carries its layers, layout grid and guides
     if (meta && meta.w === sprite.w && meta.h === sprite.h) {
       if (meta.layers) {
         try { layers = C.loadItems(meta.layers, meta.w, meta.h); } catch (err) { layers = null; }
         if (layers && meta.v === 2) C.oldTexts(layers);
       }
       if (meta.grid) grid = C.loadGrid(meta.grid);
+      if (meta.guides) guides = C.loadGuides(meta.guides, meta.w, meta.h);
     }
-    return { b: sprite, layers, grid, device: meta && meta.device };
+    return { b: sprite, layers, grid, guides, device: meta && meta.device };
   }
   async function openBytes(name, bytes) {    // a PNG or a .bin becomes the document; throws with a message otherwise
     let got;
     if (C.isPng(bytes)) got = await pngSprite(bytes, name);
     else if (/\.bin$/i.test(name)) got = { b: binSprite(bytes, name), layers: null };
     else throw new Error(`${name} is neither a PNG nor a .bin file.`);
-    const { b, layers, grid, device } = got;
+    const { b, layers, grid, guides, device } = got;
       state.sel = null;
       change(() => {
         state.w = b.w;
         state.h = b.h;
         state.items = layers || [C.layer("Layer 1", b.w, b.h, b.px)];
-        state.layout = grid || C.loadGrid(null);   // the file is the document now, its layout grid too
+        state.layout = grid || C.loadGrid(null);   // the file is the document now, its layout grid and guides too
+        state.guides = guides || C.loadGuides(null);
         if (DEVICES.includes(device)) state.device = device;
       });
     showGrid();
@@ -3248,19 +3435,22 @@ const Core = (() => {
     return `${b.w} × ${b.h}${layers ? `, ${n} layer${n === 1 ? "" : "s"}` : ""}`;
   }
   function addTexts(name, bytes) {           // the texts of a .json (Core: describe) come back as text layers on top,
-    let d, texts;                            // its layout grid with them; → "2 texts and the layout grid", "" for nothing
+    let d, texts;                            // its layout grid and guides with them → "2 texts and 3 guides", "0 texts" for none
     try { d = JSON.parse(new TextDecoder().decode(bytes)); } catch (err) { throw new Error(`${name} isn't a JSON file.`); }
     try { texts = C.textsFromDescription(d, state.w, state.h); } catch (err) { throw new Error(`${name}: ${err.message}`); }
     const grid = C.gridFromDescription(d), n = texts.length;
-    if (n || grid) {
+    const guides = C.guidesFromDescription(d, state.w, state.h), k = C.hasGuides(guides) ? guides.x.length + guides.y.length : 0;
+    if (n || grid || k) {
       change(() => {
         state.items.unshift(...texts);
         if (grid) state.layout = grid;
+        if (k) state.guides = guides;
       });
       renderLayers();
       showGrid();
     }
-    return [n ? `${n} text${n === 1 ? "" : "s"}` : grid ? "" : "0 texts", grid ? "the layout grid" : ""].filter(Boolean).join(" and ");
+    const parts = [n && `${n} text${n === 1 ? "" : "s"}`, grid && "the layout grid", k && `${k} guide${k === 1 ? "" : "s"}`].filter(Boolean);
+    return parts.length ? `${parts.slice(0, -1).join(", ")}${parts.length > 1 ? " and " : ""}${parts[parts.length - 1]}` : "0 texts";
   }
   async function unzipped(bytes) {           // the files in a ZIP: stored ones as they are, deflated ones where the browser can
     const out = [];
@@ -3369,10 +3559,10 @@ const Core = (() => {
         (function walk(list) { for (const it of list) if (it.type === "group") walk(it.children); else if (l[it.id]) it.px = l[it.id]; })(items);
       }
       localStorage.setItem(STORE, JSON.stringify({
-        v: 4, name: state.name, device: state.device, w: state.w, h: state.h, items: C.saveItems(items), layout: state.layout,
+        v: 4, name: state.name, device: state.device, w: state.w, h: state.h, items: C.saveItems(items), layout: state.layout, guides: state.guides,
         prefs: { tool: state.tool, primary: state.primary, secondary: state.secondary, size: state.size,
           filled: state.filled, radius: state.radius, dir: state.dir, align: state.align, textStyle: state.textStyle, font: state.font, grid: state.grid, osY: state.osY, stampTab: state.stampTab,
-          layoutOn: state.layoutOn },
+          layoutOn: state.layoutOn, guidesOn: state.guidesOn, rulersOn: state.rulersOn },
       }));
     } catch (err) { /* storage is a convenience */ }
   }
@@ -3385,6 +3575,7 @@ const Core = (() => {
         state.items = C.loadItems(d.items, d.w, d.h);
         if (d.v === 3) C.oldTexts(state.items);
         state.layout = C.loadGrid(d.layout);
+        state.guides = C.loadGuides(d.guides, d.w, d.h);
         state.w = d.w;
         state.h = d.h;
         if (untouchedExample(state.items, d.w, d.h)) {   // today's start screen takes its place
@@ -3419,6 +3610,8 @@ const Core = (() => {
       if (typeof p.grid === "boolean") state.grid = p.grid;
       if (typeof p.osY === "boolean") state.osY = p.osY;
       if (typeof p.layoutOn === "boolean") state.layoutOn = p.layoutOn;
+      if (typeof p.guidesOn === "boolean") state.guidesOn = p.guidesOn;
+      if (typeof p.rulersOn === "boolean") state.rulersOn = p.rulersOn;
       if (["basics", "synth", "ui", "custom"].includes(p.stampTab)) state.stampTab = p.stampTab;
       return true;
     } catch (err) {
@@ -3426,6 +3619,7 @@ const Core = (() => {
       state.h = 64;
       state.items = C.startItems();
       state.layout = C.loadGrid(null);
+      state.guides = C.loadGuides(null);
       return false;
     }
   }

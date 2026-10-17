@@ -468,6 +468,22 @@ async function main() {
     check("layout grid: the PNG's text chunk keeps it", C.sameGrid(C.loadGrid(C.readPngMeta(png).grid), g));
   }
 
+  // ---- Guides ----
+  {
+    const g = C.loadGuides({ x: [64, 32, 32, 200, 1.5, -1], y: [16, 0, 64] }, 128, 64);
+    check("guides: whole pixel edges on the canvas, each once, in order; a smaller canvas keeps those on it",
+      JSON.stringify(g) === '{"x":[32,64],"y":[0,16,64]}' && JSON.stringify(C.loadGuides(g, 40, 10)) === '{"x":[32],"y":[0]}' &&
+      C.hasGuides(g) && !C.hasGuides(C.loadGuides(null)) && JSON.stringify(C.loadGuides({ x: "no", y: null })) === '{"x":[],"y":[]}', JSON.stringify(g));
+    const d = C.describe([], 128, 64, { guides: g });
+    check("guides in the .json: x as they are, y counted from the bottom; none without guides",
+      JSON.stringify([d.guides.x, d.guides.y]) === "[[32,64],[0,48,64]]" && !("guides" in C.describe([], 128, 64, { guides: C.loadGuides(null) })),
+      JSON.stringify(d.guides));
+    check("guides come back from the .json in canvas edges, none from one without", JSON.stringify(C.guidesFromDescription(JSON.parse(JSON.stringify(d)), 128, 64)) ===
+      JSON.stringify(g) && C.guidesFromDescription({}, 128, 64) === null);
+    const png = await C.encodePng(C.bitmap(8, 4), 1, { guides: { x: [2], y: [1, 3] } });
+    check("guides: the PNG's text chunk keeps them", JSON.stringify(C.readPngMeta(png).guides) === '{"x":[2],"y":[1,3]}');
+  }
+
   // ---- Stamps ----
   {
     const ids = C.STAMPS.map(s => s.id), cats = C.STAMP_CATS.map(([c]) => c), _ = C.CLEAR;

@@ -3,10 +3,14 @@
 ## Unreleased
 
 - **Layout grid:** a new panel lays columns and rows over the canvas to count by. Each has a count, the gap between
-  them and the margin outside them; what doesn't divide evenly goes to the first ones. Thin lines show their edges,
-  red for the columns and blue for the rows, never in the pixels, and **Layout** at the bottom hides them. The status
-  line names the column and row under the pointer. The grid is saved with the sprite and in its PNG, and the .json
-  lists the columns and rows in the OS's coordinates.
+  them and the margin outside them; what doesn't divide evenly goes to the first ones. Thin red lines show their
+  edges, never in the pixels, and **Layout** at the bottom hides them. The status line names the column and row under
+  the pointer. The grid is saved with the sprite and in its PNG, and the .json lists the columns and rows in the OS's
+  coordinates.
+- **Guides and rulers:** rulers run along the top and the left of the canvas. Guides are dragged out of them, lie on
+  pixel edges and show in cyan; while one is dragged, the ruler shows its position; the Move tool moves them, and off
+  the canvas they go. **Clear guides** removes them all, and **Guides** and **Rulers** at the bottom hide them. They
+  are saved like the layout grid, and the .json lists them, y counted from the bottom.
 
 ## 0.1 (2026-10-17)
 
