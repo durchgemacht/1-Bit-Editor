@@ -484,6 +484,40 @@ async function main() {
     check("guides: the PNG's text chunk keeps them", JSON.stringify(C.readPngMeta(png).guides) === '{"x":[2],"y":[1,3]}');
   }
 
+  // ---- Slices ----
+  {
+    const list = C.loadSlices([{ name: " Icon ", x: 4, y: 8, w: 25, h: 22 }, { name: "", x: 0, y: 0, w: 128, h: 64 }, { x: 120, y: 0, w: 16, h: 8 },
+      { x: -1, y: 0, w: 2, h: 2 }, { x: 0, y: 0, w: 0, h: 1 }, { x: 1.5, y: 0, w: 1, h: 1 }, "no", null], 128, 64);
+    check("slices: whole boxes on the canvas, names trimmed, a missing name numbered; odd ones are left out",
+      list.length === 2 && list[0].name === "Icon" && list[1].name === "Slice 2" && !!list[0].id && list[0].id !== list[1].id &&
+      JSON.stringify(C.saveSlices(list)) === '[{"name":"Icon","x":4,"y":8,"w":25,"h":22},{"name":"Slice 2","x":0,"y":0,"w":128,"h":64}]', JSON.stringify(C.saveSlices(list)));
+    check("slices: none from nothing", C.loadSlices(null).length === 0 && !C.hasSlices([]) && !C.hasSlices(null) && C.hasSlices(list));
+    const copy = list.map(s => ({ ...s }));
+    check("sameSlices: ids, names and boxes", C.sameSlices(list, copy) && !C.sameSlices(list, [copy[0]]) && (copy[1].x = 1, !C.sameSlices(list, copy)));
+    const cut = C.clipSlices(list, 100, 20);
+    check("clipSlices: cut to a smaller canvas, gone when nothing is left, ids kept", cut.length === 2 && cut[0].id === list[0].id &&
+      JSON.stringify(C.saveSlices(cut)) === '[{"name":"Icon","x":4,"y":8,"w":25,"h":12},{"name":"Slice 2","x":0,"y":0,"w":100,"h":20}]' &&
+      C.clipSlices(list, 2, 2).length === 1, JSON.stringify(C.saveSlices(cut)));
+    const stems = C.sliceStems([C.slice("Play icon", 0, 0, 8, 8), C.slice("Play icon", 0, 0, 4, 4), C.slice("***", 0, 0, 1, 1), C.slice("ä-b_c", 0, 0, 2, 2)], "screen");
+    check("sliceStems: the name as a file name, the size at the end, the same name counted", stems.map(([, t]) => t).join() ===
+      "screen_Play-icon_8x8,screen_Play-icon-2_4x4,screen_slice_1x1,screen_b_c_2x2", stems.map(([, t]) => t).join());
+    const W = 128, H = 64, inText = C.textItem("In", 10, 20, "IN"), outText = C.textItem("Out", 100, 20, "OUT");
+    const sl = [{ ...C.slice("Icon", 4, 8, 40, 20), files: { bin: "a.bin", png: "a.png" } }, C.slice("Bar", 0, 50, 128, 14)];
+    const d = C.describe([inText, outText, C.layer("L", W, H)], W, H, { slices: sl });
+    check("describe: slices with their box in the OS's coordinates, size and files; a text inside one names it",
+      JSON.stringify(d.slices) === '[{"name":"Icon","box":[4,36,43,55],"size":[40,20],"files":{"bin":"a.bin","png":"a.png"}},{"name":"Bar","box":[0,0,127,13],"size":[128,14]}]' &&
+      d.texts[0].slice === "Icon" && !("slice" in d.texts[1]) && typeof d.slicesNote === "string" && !("slices" in C.describe([], W, H)) &&
+      !("slicesNote" in C.describe([], W, H, { slices: [] })), JSON.stringify([d.slices, d.texts]));
+    const back = C.slicesFromDescription(JSON.parse(JSON.stringify(d)), W, H);
+    check("slices come back from the .json in canvas terms, none from one without", JSON.stringify(C.saveSlices(back)) ===
+      '[{"name":"Icon","x":4,"y":8,"w":40,"h":20},{"name":"Bar","x":0,"y":50,"w":128,"h":14}]' && C.slicesFromDescription({}, W, H) === null &&
+      C.slicesFromDescription({ slices: [{ name: "x", box: [0, 0, 1] }, { name: "y", box: [0, 0, 200, 1] }] }, W, H).length === 0, JSON.stringify(C.saveSlices(back)));
+    const png = await C.encodePng(C.bitmap(8, 4), 1, { slices: C.saveSlices(sl) });
+    check("slices: the PNG's text chunk keeps them", JSON.stringify(C.readPngMeta(png).slices) === JSON.stringify(C.saveSlices(sl)));
+    check("sliceHolds: a box inside the slice, edges included", C.sliceHolds(sl[0], { x: 4, y: 8, w: 40, h: 20 }) &&
+      !C.sliceHolds(sl[0], { x: 4, y: 8, w: 41, h: 20 }) && !C.sliceHolds(sl[0], null));
+  }
+
   // ---- Stamps ----
   {
     const ids = C.STAMPS.map(s => s.id), cats = C.STAMP_CATS.map(([c]) => c), _ = C.CLEAR;

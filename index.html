@@ -57,6 +57,7 @@ Not affiliated with Elektron. Model:Cycles and Model:Samples are Elektron produc
   --grid: rgba(128, 128, 128, 0.32);
   --layout: rgba(255, 69, 58, 0.9);           /* the layout grid and the guides lie on the screen, so they keep their colors */
   --guide: rgba(0, 199, 255, 0.95);           /* in both themes */
+  --slice: rgba(52, 199, 89, 0.95);           /* the slices too */
   --scrim: rgba(10, 10, 12, 0.5);
   --hover: rgba(48, 38, 24, 0.06);
   --sel: rgba(163, 86, 10, 0.14);
@@ -241,6 +242,15 @@ body.arranging, body.arranging * { cursor: grabbing !important; user-select: non
 .lr.active:not(.group) .lr-led { background: var(--led); box-shadow: 0 0 6px var(--led); }
 .lr-input { flex: 1 1 auto; min-width: 0; height: 24px; margin: 0; padding: 0 6px; border: 1px solid var(--accent); border-radius: 4px; background: var(--key); font-size: 13px; }
 .lr-empty { margin: 6px 0; font-size: 12px; color: var(--muted); }
+.slice-list { max-height: 10rem; overflow-y: auto; margin: -2px -4px 0; padding: 2px 4px; }
+.sr { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border-radius: 6px; user-select: none; -webkit-user-select: none; }
+.sr:hover { background: var(--hover); }
+.sr[aria-selected="true"] { background: var(--sel); }
+.sr:focus-visible { outline-offset: -2px; }
+.sr-box { flex: none; width: 10px; height: 8px; border: 1.5px solid var(--slice); border-radius: 1px; }
+.sr-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.sr-size { flex: none; font: 11px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.sr .lr-input { height: 22px; }
 .layer-list.dragging, .layer-list.dragging .lr { cursor: grabbing; }
 .lr.dragged { opacity: 0.4; }
 .lr.drop-into { box-shadow: inset 0 0 0 2px var(--accent); }
@@ -249,8 +259,8 @@ body.arranging, body.arranging * { cursor: grabbing !important; user-select: non
 .lr.drop-after::after { bottom: -1px; }
 .layer-list.drop-end::after { content: ""; display: block; height: 2px; margin: 1px 4px 0 30px; border-radius: 1px; background: var(--accent); }
 .lr-ghost { position: fixed; left: 0; top: 0; z-index: 45; padding: 5px 10px; border-radius: 6px; background: var(--fg); color: var(--bg); font-size: 12px; white-space: nowrap; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25); pointer-events: none; }
-.layer-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
-.layer-actions .btn { flex: 1 1 auto; justify-content: center; height: 28px; padding: 0 6px; font-size: 12px; }
+.layer-actions, .slice-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.layer-actions .btn, .slice-actions .btn { flex: 1 1 auto; justify-content: center; height: 28px; padding: 0 6px; font-size: 12px; }
 
 /* Stamps panel: tabs, then the stamps of that tab as tiles you drag onto the canvas */
 .stamp-tabs { display: flex; margin-bottom: 8px; }
@@ -420,6 +430,7 @@ dialog p { margin: 8px 0; max-width: 62ch; }
       <button class="tool" type="button" data-tool="fill" data-key="G" aria-label="Fill" aria-describedby="tip-fill"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 4.5l7.5 7.5-6.2 6.2a1.6 1.6 0 0 1-2.3 0L4.3 13a1.6 1.6 0 0 1 0-2.3z"/><path d="M4 12h14"/><path class="solid" d="M20 14.8c1.1 1.7 1.7 2.7 1.7 3.5a1.7 1.7 0 0 1-3.4 0c0-.8.6-1.8 1.7-3.5z"/></svg><span class="tip-src" id="tip-fill" hidden>Click an area to fill it with the chosen color or pattern.</span></button>
       <button class="tool" type="button" data-tool="select" data-key="M" aria-label="Select" aria-describedby="tip-select"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="13" stroke-dasharray="2.6 2.2"/></svg><span class="tip-src" id="tip-select" hidden>Drag to select; hold <kbd>Space</kbd> to move the frame. Drag the selection to move it, <kbd class="alt">Alt</kbd>-drag to copy it. Arrow keys nudge, <kbd>Delete</kbd> clears.</span></button>
       <button class="tool" type="button" data-tool="text" data-key="T" aria-label="Text" aria-describedby="tip-text"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5V5h14v2.5M12 5v14M9 19h6"/></svg><span class="tip-src" id="tip-text" hidden>Click to put a text layer there, then type; <kbd>Enter</kbd> finishes. Click a text to edit it, drag it to move it. The .bin leaves text out: the device draws it in its own font.</span></button>
+      <button class="tool" type="button" data-tool="slice" data-key="S" aria-label="Slice" aria-describedby="tip-slice"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 3.5v13h13M3.5 7.5h13v13"/></svg><span class="tip-src" id="tip-slice" hidden>Drag a box around a part of the screen to export it as a sprite of its own, with its place in the .json. Drag a slice to move it, its corners to resize it; <kbd>Delete</kbd> removes it.</span></button>
     </nav>
 
     <div class="stage-wrap" id="stage-wrap">
@@ -475,6 +486,16 @@ dialog p { margin: 8px 0; max-width: 62ch; }
         <p class="sr-only" id="stamps-help">Drag a stamp onto the canvas, or click it to put it in the middle. It floats on the selected layer until you press Enter or click next to it; Delete throws it away.</p>
       </section>
 
+      <section class="panel slices" data-panel="slices" aria-labelledby="h-slices">
+        <h2 id="h-slices">Slices</h2>
+        <div class="slice-list" id="slice-list" role="listbox" aria-labelledby="h-slices" aria-describedby="slices-help"></div>
+        <div class="slice-actions">
+          <button class="btn" id="btn-slice-sel" type="button" title="A slice around the selection">From selection</button>
+          <button class="btn" id="btn-slice-layer" type="button" title="A slice around what the selected layer holds">From layer</button>
+          <button class="btn" id="btn-slice-del" type="button" title="Delete the selected slice">Delete</button>
+        </div>
+        <p class="sr-only" id="slices-help">A slice is a box over the screen that the .bin button exports as a sprite of its own, with its place in the .json. The Slice tool draws them; here they are listed with their sizes. Click one to select it, double-click to rename it. In the list, the arrow keys select, Enter renames and Delete deletes.</p>
+      </section>
       <section class="panel actions" data-panel="file" aria-labelledby="h-file">
         <h2 id="h-file">File</h2>
         <div class="file-actions">
@@ -508,6 +529,7 @@ dialog p { margin: 8px 0; max-width: 62ch; }
       <label class="check" for="grid" title="Show the pixel grid, from 6× zoom up"><input type="checkbox" id="grid" checked>Grid</label>
       <label class="check" for="layout-on" title="Show the layout grid: its columns and rows are set with the grid button left of the size"><input type="checkbox" id="layout-on" checked>Layout</label>
       <label class="check" for="guides-on" title="Show the guides; drag new ones out of the rulers"><input type="checkbox" id="guides-on" checked>Guides</label>
+      <label class="check" for="slices-on" title="Show the slices: boxes the .bin button exports as sprites of their own"><input type="checkbox" id="slices-on" checked>Slices</label>
       <label class="check" for="rulers-on" title="Show the rulers above and left of the canvas"><input type="checkbox" id="rulers-on" checked>Rulers</label>
       <label class="check" for="os-y" title="Count y from the bottom row, as the OS does: y = 0 is the bottom"><input type="checkbox" id="os-y">OS y</label>
     </span>
@@ -542,11 +564,13 @@ dialog p { margin: 8px 0; max-width: 62ch; }
   <p>The grid button left of the size folds out the layout grid: columns and rows laid over the canvas to count by. For each you set how many, the gap between them and the margin outside them, in pixels; what doesn't divide evenly goes to the first ones, a pixel each. Thin red lines show their edges; they are never part of the pixels, and <b>Layout</b> at the bottom hides them. The status line names the column and row under the pointer. The grid is saved with the sprite and in its PNG, and the .json lists it.</p>
   <h3>Guides and rulers</h3>
   <p>Rulers run along the top and the left of the canvas; y counts as the status line does. Drag down out of the top ruler for a guide across, or right out of the left one for a guide down. A guide lies on the edge between two pixels and shows in cyan; while you drag it, the ruler and the status line show where it lands. Move it with the Move tool, and drag it off the canvas to remove it. <b>Guides</b> and <b>Rulers</b> at the bottom hide them. Guides are saved like the layout grid, and the .json lists them.</p>
+  <h3>Slices</h3>
+  <p>A slice is a box over the screen that comes out as a sprite of its own: draw a whole screen in place, then mark the icons in it. The <b>Slice</b> tool drags one out; drag a slice to move it, its corners to resize it, and <kbd>Delete</kbd> removes it. Its edges snap to the canvas's, the guides, the layout grid and the other slices. <b>From selection</b> and <b>From layer</b> in the Slices panel make one around the selection or around what the selected layer holds; double-click a name there to rename it. Slices show in green and are never part of the pixels; <b>Slices</b> at the bottom hides them. The .bin button then saves each slice's .bin and PNG beside the whole screen's, and the .json lists their boxes in the OS's coordinates. Slices are saved with the sprite and in its PNG.</p>
   <h3>Keys</h3>
   <div class="keys">
     <span><kbd>V</kbd></span><span>Move the selected layers</span>
     <span><kbd>B</kbd> <kbd>L</kbd> <kbd>R</kbd> <kbd>U</kbd> <kbd>O</kbd> <kbd>A</kbd></span><span>Brush, line, rectangle, rounded rectangle, ellipse, triangle</span>
-    <span><kbd>G</kbd> <kbd>M</kbd> <kbd>T</kbd></span><span>Fill, select, text</span>
+    <span><kbd>G</kbd> <kbd>M</kbd> <kbd>T</kbd> <kbd>S</kbd></span><span>Fill, select, text, slice</span>
     <span><kbd>X</kbd></span><span>Swap the left and right color</span>
     <span><kbd>[</kbd> <kbd>]</kbd></span><span>Brush size or line width</span>
     <span><kbd>F</kbd></span><span>Outline or filled shapes</span>
@@ -554,20 +578,20 @@ dialog p { margin: 8px 0; max-width: 62ch; }
     <span><kbd>Space</kbd></span><span>While dragging a shape or a selection frame: move it</span>
     <span><kbd class="mod">⌘</kbd> <kbd>Z</kbd> · <kbd class="mod">⌘</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></span><span>Undo, redo</span>
     <span><kbd class="mod">⌘</kbd> <kbd>A</kbd> <kbd>C</kbd> <kbd>X</kbd> <kbd>V</kbd></span><span>Select all, copy, cut, paste</span>
-    <span><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></span><span>Nudge the selection by 1 pixel, with <kbd>Shift</kbd> by 8; with Move, the selected layers</span>
-    <span><kbd>Enter</kbd> · <kbd>Esc</kbd></span><span>Place moved pixels or text · deselect or drop the text</span>
+    <span><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></span><span>Nudge the selection by 1 pixel, with <kbd>Shift</kbd> by 8; with Move, the selected layers; with Slice, the selected slice</span>
+    <span><kbd>Enter</kbd> · <kbd>Esc</kbd></span><span>Place moved pixels or text · deselect, drop the text or let go of the slice</span>
     <span><kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></span><span>Zoom in, zoom out, fit</span>
     <span><kbd class="mod">⌘</kbd> <kbd>S</kbd> · <kbd class="mod">⌘</kbd> <kbd>O</kbd></span><span>Save PNG, open a file</span>
     <span><kbd>Shift</kbd> <kbd>R</kbd> · <kbd>Shift</kbd> <kbd>G</kbd></span><span>Show or hide the rulers · the layout grid</span>
     <span><kbd class="mod">⌘</kbd> <kbd>'</kbd> · <kbd class="mod">⌘</kbd> <kbd>;</kbd></span><span>Show or hide the pixel grid · the guides (on a German keyboard <kbd>Ä</kbd> and <kbd>Ö</kbd>)</span>
-    <span><kbd>↑</kbd> <kbd>↓</kbd> · <kbd>Enter</kbd> · <kbd>Delete</kbd></span><span>In the layer list: the layer above or below · rename · delete</span>
+    <span><kbd>↑</kbd> <kbd>↓</kbd> · <kbd>Enter</kbd> · <kbd>Delete</kbd></span><span>In the layer list or the slice list: the one above or below · rename · delete</span>
   </div>
   <h3>Panels</h3>
   <p>Drag a panel by its title to move it. Drop it on the middle of another panel to share that place as tabs, and drag a tab out to give it its own place again. The layout stays in this browser. <button class="btn" id="btn-panels-reset" type="button">Reset panels</button></p>
   <h3>Files</h3>
   <p><b>Save PNG</b> writes the working file: 1 bit, as the device shows it (white = light = lit), with the layers inside. Open it again to keep drawing, layers and all; other programs just see the picture. <b>PNG ×8</b> is a bigger copy for sharing; it opens again at its real size.</p>
   <p><b>Open</b> takes a PNG, a .bin, a .json or the ZIP the .bin button saves; pick or drop several at once. A .bin holds no texts, so the editor asks for its .json, which brings them back as text layers. A .json on its own adds its texts to the canvas, if the size fits.</p>
-  <p>The <b>.bin</b> button saves a .zip with the .bin and a <b>.json</b> that describes the screen for whoever builds it into a mod, a person or an agent: the texts with their anchors, fonts and styles, and every layer with the box it covers, in the OS's coordinates (y from the bottom; <b>OS y</b> in the status line counts the same way).</p>
+  <p>The <b>.bin</b> button saves a .zip with the .bin and a <b>.json</b> that describes the screen for whoever builds it into a mod, a person or an agent: the texts with their anchors, fonts and styles, every layer with the box it covers, and the slices, in the OS's coordinates (y from the bottom; <b>OS y</b> in the status line counts the same way). With slices, the ZIP also holds each slice's .bin and PNG.</p>
   <p><b>.bin</b> holds the pixels of the visible layers, without text, the way the OS stores its own sprites: column after column, ⌈height ÷ 32⌉ big-endian 32-bit words per column, and bit 7 of the first byte is the bottom-left pixel, because the OS counts y from the bottom. A 48 × 33 sprite is 384 bytes. A mod includes it with <code>.incbin "icon_48x33.bin"</code>. The size in the file name lets the editor open it again.</p>
   <p class="fine">Not affiliated with Elektron. Model:Cycles and Model:Samples are Elektron products. MIT licensed.</p>
 </dialog>
@@ -1077,17 +1101,19 @@ const Core = (() => {
   // which the device draws in its own fonts, and the layers with the boxes they cover. Coordinates as the OS's drawing
   // calls take them: x from the left, y from the bottom row (0); a box is [x0, y0, x1, y1], both corners included. ----
 
-  function describe(items, w, h, { name = "sprite", device = "models", files = {}, grid = null, guides = null } = {}) {
+  function describe(items, w, h, { name = "sprite", device = "models", files = {}, grid = null, guides = null, slices = null } = {}) {
     const box = r => r && [r.x, h - r.y - r.h, r.x + r.w - 1, h - 1 - r.y];
     const texts = [], layers = [];
     (function walk(list, path, shown) {
       for (const it of list) {
         const where = [...path, it.name].join(" / "), visible = shown && it.visible;
         if (it.type === "group") { layers.push({ name: where, type: "group", visible }); walk(it.children, [...path, it.name], visible); continue; }
-        const px = it.type === "text" ? textPixels(it, w, h) : it.px, area = box(bounds({ w, h, px }));
+        const px = it.type === "text" ? textPixels(it, w, h) : it.px, r = bounds({ w, h, px }), area = box(r);
         layers.push({ name: where, type: it.type, visible, box: area });
         if (it.type === "text") {
-          texts.push({ text: it.text, x: it.x, y: h - 1 - it.y, align: it.align, font: it.font, style: it.style, visible, layer: where, box: area });
+          const at = hasSlices(slices) && slices.find(s => sliceHolds(s, r));   // the slice it lies in, if one does
+          texts.push({ text: it.text, x: it.x, y: h - 1 - it.y, align: it.align, font: it.font, style: it.style, visible, layer: where, box: area,
+            ...(at ? { slice: at.name } : {}) });
         }
       }
     })(items, [], true);
@@ -1112,6 +1138,10 @@ const Core = (() => {
         note: "Guides the screen was laid out by; the device draws none of them. They lie on pixel edges: x 32 runs between the columns 31 and 32, y 32 between the rows 31 and 32, counted from the bottom.",
         x: guides.x.slice(), y: guides.y.map(v => h - v).sort((a, b) => a - b),
       };
+    }
+    if (hasSlices(slices)) {
+      out.slicesNote = "Slices: boxes over the screen that come out as sprites of their own. Each has its own .bin, the pixels inside without the texts, and a PNG; a text inside one names it under slice.";
+      out.slices = slices.map(s => ({ name: s.name, box: box(s), size: [s.w, s.h], ...(s.files ? { files: s.files } : {}) }));
     }
     return out;
   }
@@ -1169,6 +1199,48 @@ const Core = (() => {
   function guidesFromDescription(d, w, h) {  // the guides a .json from describe() holds (y from the bottom), or null
     const g = d && d.guides;
     return g && typeof g === "object" ? loadGuides({ x: g.x, y: Array.isArray(g.y) ? g.y.map(v => h - v) : [] }, w, h) : null;
+  }
+
+  // ---- Slices: boxes over the canvas that come out as sprites of their own, never part of the pixels. In canvas terms
+  // x, y is the top-left pixel and w × h the size; the .json gives the box in the OS's coordinates. ----
+
+  function slice(name, x, y, w, h) { return { id: newId(), name, x, y, w, h }; }
+  function loadSlices(list, w = MAX_W, h = MAX_H) {   // stored slices, checked: whole boxes on the canvas, in order; odd ones are left out
+    if (!Array.isArray(list)) return [];
+    const out = [];
+    for (const s of list) {
+      if (!s || typeof s !== "object" || ![s.x, s.y, s.w, s.h].every(Number.isInteger)) continue;
+      if (s.x < 0 || s.y < 0 || s.w < 1 || s.h < 1 || s.x + s.w > w || s.y + s.h > h) continue;
+      const name = typeof s.name === "string" && s.name.trim() ? s.name.trim().slice(0, 40) : `Slice ${out.length + 1}`;
+      out.push(slice(name, s.x, s.y, s.w, s.h));
+    }
+    return out;
+  }
+  const hasSlices = list => Array.isArray(list) && list.length > 0;
+  const saveSlices = list => list.map(s => ({ name: s.name, x: s.x, y: s.y, w: s.w, h: s.h }));
+  const sameSlices = (a, b) => a.length === b.length && a.every((s, i) => ["id", "name", "x", "y", "w", "h"].every(k => s[k] === b[i][k]));
+  function clipSlices(list, w, h) {          // the slices on a canvas of w × h: cut to it, gone when nothing of them is left
+    return list.map(s => {
+      const x0 = Math.max(0, s.x), y0 = Math.max(0, s.y), x1 = Math.min(w, s.x + s.w), y1 = Math.min(h, s.y + s.h);
+      return x1 > x0 && y1 > y0 ? { ...s, x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : null;
+    }).filter(Boolean);
+  }
+  function sliceStems(list, base) {          // [slice, file stem] for each: base_name_WxH with the name made a file name, each once
+    const seen = new Map();
+    return list.map(s => {
+      const slug = s.name.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "slice", n = (seen.get(slug) || 0) + 1;
+      seen.set(slug, n);
+      return [s, `${base}_${slug}${n > 1 ? `-${n}` : ""}_${s.w}x${s.h}`];
+    });
+  }
+  const sliceHolds = (s, r) => !!r && r.x >= s.x && r.y >= s.y && r.x + r.w <= s.x + s.w && r.y + r.h <= s.y + s.h;
+  function slicesFromDescription(d, w, h) {  // the slices a .json from describe() holds (boxes in the OS's coordinates), or null
+    const list = d && d.slices;
+    if (!Array.isArray(list)) return null;
+    return loadSlices(list.map(s => {
+      const b = s && Array.isArray(s.box) && s.box.length === 4 && s.box.every(Number.isInteger) ? s.box : null;
+      return b && { name: s.name, x: b[0], y: h - 1 - b[3], w: b[2] - b[0] + 1, h: b[3] - b[1] + 1 };
+    }), w, h);
   }
 
   // ---- .bin: the layout of the OS's own sprites, checked against the Model:Cycles OS 1.13 sprites and the
@@ -1273,7 +1345,7 @@ const Core = (() => {
     return concat([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("tEXt", meta),
       chunk("IDAT", await zlib(rows)), chunk("IEND", new Uint8Array(0))]);
   }
-  function readPngMeta(bytes) {              // {w, h, scale[, v, device, layers, grid, guides]} from our tEXt chunk, or null
+  function readPngMeta(bytes) {              // {w, h, scale[, v, device, layers, grid, guides, slices]} from our tEXt chunk, or null
     if (!isPng(bytes)) return null;
     const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     for (let o = 8; o + 12 <= bytes.length;) {
@@ -1291,6 +1363,7 @@ const Core = (() => {
             if (Array.isArray(m.layers)) out.layers = m.layers;
             if (m.grid && typeof m.grid === "object") out.grid = m.grid;
             if (m.guides && typeof m.guides === "object") out.guides = m.guides;
+            if (Array.isArray(m.slices)) out.slices = m.slices;
             return out;
           } catch (err) { return null; }
         }
@@ -1443,6 +1516,7 @@ const Core = (() => {
     crc32, zlibStored, isPng, encodePng, readPngMeta, fromRgba, fitScale, downscale, zipOne, zipFiles, readZip, describe,
     textsFromDescription, bounds, GRID_MAX, gridFields, loadGrid, hasGrid, sameGrid, gridFromDescription,
     loadGuides, hasGuides, guidesFromDescription,
+    slice, loadSlices, hasSlices, saveSlices, sameSlices, clipSlices, sliceStems, sliceHolds, slicesFromDescription,
     pack, unpack, startItems, oldExampleLayers, oldExample,
   };
 })();
@@ -1463,7 +1537,7 @@ const Core = (() => {
   const stageWrap = $("stage-wrap"), rulerX = $("ruler-x"), rulerY = $("ruler-y");
   const nameInput = $("doc-name"), sizeSelect = $("doc-size");
 
-  const TOOLS = ["move", "brush", "line", "rect", "roundrect", "ellipse", "triangle", "fill", "select", "text"];
+  const TOOLS = ["move", "brush", "line", "rect", "roundrect", "ellipse", "triangle", "fill", "select", "text", "slice"];
   const DEVICES = ["models"];   // which device a sprite or stamp is for: the start of sorting and filtering by device
   const SHAPES = ["line", "rect", "roundrect", "ellipse", "triangle"];
   const SIZES = [1, 2, 3, 4, 5, 6, 7, 8];   // the brush size and the line width of lines and shapes, in pixels
@@ -1504,12 +1578,13 @@ const Core = (() => {
     name: "example", w: 128, h: 64, items: C.startItems(),
     layout: C.loadGrid(null),               // the layout grid's columns and rows (Core: gridFields), none at first
     guides: C.loadGuides(null),             // guides on pixel edges {x: [...], y: [...]}, y from the top
+    slices: [], slice: null,                // boxes that come out as sprites of their own (Core: slice), and the selected one's id
     selected: new Set(), active: null,      // the layers panel selection (ids) and the item last clicked
     tool: "brush", primary: "off", secondary: "on", size: 1, filled: false, radius: 2, dir: "up", font: "regular", stampTab: "basics",
     align: "left", textStyle: "inverted",   // for new text layers (dark on the light canvas); a selected one shows its own
     device: "models",   // what the sprite is for; only the Model:Cycles / Model:Samples screen so far
     zoom: 8, fit: true, grid: true, osY: false,   // osY: the status line counts y from the bottom, like the OS
-    layoutOn: true, guidesOn: true, rulersOn: true,   // whether the layout grid, the guides and the rulers show
+    layoutOn: true, guidesOn: true, rulersOn: true, slicesOn: true,   // whether the layout grid, the guides, the rulers and the slices show
     sel: null,      // selected rectangle {x, y, w, h}, inside the canvas
     float: null,    // pixels being moved {b, x, y, before, layerId}, drawn on top until they are placed
     text: null,     // text being typed {x, y, value, ink, layerId}
@@ -1521,6 +1596,7 @@ const Core = (() => {
   const view = it => ({ w: state.w, h: state.h, px: it.px });      // a layer as a bitmap for Core's drawing
   let drag = null, clip = null, antsPhase = 0;
   let guideDrag = null, hoverGuide = null;   // a guide being pulled {id, axis, from, at}; the one under the Move tool {axis, edge}
+  let sliceHover = null;                     // under the Slice tool: a slice {slice} or a corner handle of the selected one {slice, corner}
   let lastP = null, spaceHeld = false;      // the pixel under the pointer, also off the canvas; Space held during a drag
 
   function find(id, list = state.items, parent = null) {           // -> {item, list, index, parent} or null
@@ -1610,10 +1686,10 @@ const Core = (() => {
 
   const history = { undo: [], redo: [] };
   const snapshot = () => ({ w: state.w, h: state.h, items: C.cloneItems(state.items), layout: C.loadGrid(state.layout),
-    guides: C.loadGuides(state.guides, state.w, state.h), selected: [...state.selected], active: state.active });
+    guides: C.loadGuides(state.guides, state.w, state.h), slices: state.slices.map(x => ({ ...x })), selected: [...state.selected], active: state.active });
   function record(before) {                 // keeps `before` as an undo step if the document changed since
     if (before.w === state.w && before.h === state.h && C.sameItems(before.items, state.items) && C.sameGrid(before.layout, state.layout) &&
-      JSON.stringify(before.guides) === JSON.stringify(state.guides)) return false;
+      JSON.stringify(before.guides) === JSON.stringify(state.guides) && C.sameSlices(before.slices, state.slices)) return false;
     history.undo.push(before);
     if (history.undo.length > 200) history.undo.shift();
     history.redo.length = 0;
@@ -1633,6 +1709,7 @@ const Core = (() => {
     state.items = s.items;
     state.layout = s.layout;
     state.guides = s.guides;
+    state.slices = s.slices;
     gridBefore = null;                       // an edit going on starts afresh from here
     showGrid();
     for (const g of inOrder()) if (open.has(g.id)) g.open = open.get(g.id);   // folding a group isn't undone
@@ -1640,12 +1717,13 @@ const Core = (() => {
     state.active = s.active;
     state.sel = null;
     fixSelection();
+    fixSliceSelection();
     sizeChanged();
     changed();
   }
   const undo = () => step(history.undo, history.redo);
   const redo = () => step(history.redo, history.undo);
-  function changed() { render(); save(); renderLayers(); }
+  function changed() { render(); save(); renderLayers(); renderSlices(); }
 
   // ---- Moved pixels, moved layers and typed text become part of the sprite here ----
 
@@ -1896,6 +1974,22 @@ const Core = (() => {
         if (state.text) commitText();
         if (onCanvas(p)) startText(p);
       }
+    } else if (t === "slice") {              // a corner handle resizes the selected slice, a slice moves, elsewhere a new one is dragged out
+      if (e.button !== 0) return;
+      const hit = sliceHit(e, p);
+      if (hit && hit.corner) {
+        const sl = hit.slice, fixed = [hit.corner.includes("w") ? sl.x + sl.w - 1 : sl.x, hit.corner.includes("n") ? sl.y + sl.h - 1 : sl.y];
+        drag = { tool: t, id: e.pointerId, mode: "resize", sid: sl.id, corner: hit.corner, fixed, was: { ...sl }, before: snapshot() };
+      } else if (hit) {
+        const sl = hit.slice;
+        state.slice = sl.id;
+        drag = { tool: t, id: e.pointerId, mode: "move", sid: sl.id, dx: p[0] - sl.x, dy: p[1] - sl.y, was: { ...sl }, before: snapshot() };
+      } else {
+        state.slice = null;
+        drag = { tool: t, id: e.pointerId, mode: "new", start: p, last: p, draft: null, before: snapshot() };
+      }
+      syncSlices();
+      render();
     }
   });
   bezel.addEventListener("pointermove", e => {
@@ -1904,6 +1998,7 @@ const Core = (() => {
     lastP = p;
     state.hover = onCanvas(p) ? p : null;
     hoverGuide = !drag && state.tool === "move" ? guideNear(e) : null;
+    sliceHover = !drag && state.tool === "slice" ? sliceHit(e, p) : null;
     setCursor(p);
     if (!drag || e.pointerId !== drag.id) { updatePos(); drawOverlay(); return; }
     const q = reach(p);
@@ -1918,6 +2013,18 @@ const Core = (() => {
     } else if (drag.tool === "move") {
       state.shift.dx = drag.dx + q[0] - drag.start[0];
       state.shift.dy = drag.dy + q[1] - drag.start[1];
+      render();
+    } else if (drag.tool === "slice") {
+      const sl = state.slices.find(x => x.id === drag.sid);
+      if (drag.mode === "new") {
+        if (drag.space) drag.start = [drag.start[0] + q[0] - drag.last[0], drag.start[1] + q[1] - drag.last[1]];   // the box moves
+        drag.last = q;
+        if (drag.draft || q[0] !== drag.start[0] || q[1] !== drag.start[1]) drag.draft = sliceBox(drag.start, q, null);
+        drag.box = drag.draft && [drag.draft.x, drag.draft.y, drag.draft.x + drag.draft.w - 1, drag.draft.y + drag.draft.h - 1];
+      } else if (drag.mode === "resize" && sl) {
+        Object.assign(sl, sliceBox(drag.fixed, q, sl.id));
+        drag.box = [sl.x, sl.y, sl.x + sl.w - 1, sl.y + sl.h - 1];
+      } else if (sl) moveSlice(sl, q[0] - drag.dx, q[1] - drag.dy);
       render();
     } else if (drag.mode === "move") {
       const o = drag.tool === "text" ? editedText() : state.float;
@@ -1944,6 +2051,7 @@ const Core = (() => {
       record(d.before);
     } else if (d.tool === "move") place();
     else if (d.tool === "text") focusText();
+    else if (d.tool === "slice") endSlice(d);
     render();
   }
   function cancelDrag() {
@@ -1953,6 +2061,7 @@ const Core = (() => {
     if (d.tool === "brush") record(d.before);
     if (SHAPES.includes(d.tool)) state.preview = null;
     if (d.tool === "move" && state.shift) { state.shift.dx = d.dx; state.shift.dy = d.dy; }   // back to where this drag began
+    if (d.tool === "slice" && d.was) { const sl = state.slices.find(x => x.id === d.sid); if (sl) Object.assign(sl, d.was); }
     render();
   }
   bezel.addEventListener("pointerup", e => (guideDrag && e.pointerId === guideDrag.id ? dropGuide(e) : endDrag(e)));
@@ -1960,7 +2069,7 @@ const Core = (() => {
     if (guideDrag && e.pointerId === guideDrag.id) cancelGuide();
     else if (drag && e.pointerId === drag.id) cancelDrag();
   });
-  bezel.addEventListener("pointerleave", () => { if (!drag && !guideDrag) { state.hover = lastP = hoverGuide = null; updatePos(); drawOverlay(); } });
+  bezel.addEventListener("pointerleave", () => { if (!drag && !guideDrag) { state.hover = lastP = hoverGuide = sliceHover = null; updatePos(); drawOverlay(); } });
   bezel.addEventListener("contextmenu", e => e.preventDefault());
 
   function shapePreview(shift) {
@@ -1984,11 +2093,13 @@ const Core = (() => {
   function movesHere(p) {                    // does a drag here move something (or is one moving something)?
     if (drag) return drag.tool === "move" || drag.mode === "move";
     return state.tool === "move" || (state.tool === "select" && inside(p, selRect())) ||
-      (state.tool === "text" && ((!!state.text && inside(p, textBox())) || !!textAt(p)));
+      (state.tool === "text" && ((!!state.text && inside(p, textBox())) || !!textAt(p))) || (state.tool === "slice" && !!sliceHover);
   }
   function setCursor(p) {                    // over the canvas the yellow marker stands in for the pointer; moving keeps the move cursor
     const g = guideDrag || hoverGuide;       // a guide being pulled, or one the Move tool would pick up
-    const c = g ? (g.axis === "x" ? "ew-resize" : "ns-resize") : movesHere(p) ? "move" : onCanvas(p) ? "none" : "crosshair";
+    const corner = drag && drag.tool === "slice" ? drag.corner : sliceHover && sliceHover.corner;   // a slice's corner handle
+    const c = g ? (g.axis === "x" ? "ew-resize" : "ns-resize") : corner ? (corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize")
+      : movesHere(p) ? "move" : onCanvas(p) ? "none" : "crosshair";
     if (bezel.style.cursor !== c) bezel.style.cursor = c;
   }
   function marker() {                        // the box the marker draws, in sprite pixels: what the tool will touch
@@ -2032,13 +2143,13 @@ const Core = (() => {
       return;
     }
     // Letters only without Alt; symbols with it too, because [ and ] need Alt on some layouts (German Mac).
-    const tools = { v: "move", b: "brush", l: "line", r: "rect", u: "roundrect", o: "ellipse", a: "triangle", g: "fill", m: "select", t: "text" };
+    const tools = { v: "move", b: "brush", l: "line", r: "rect", u: "roundrect", o: "ellipse", a: "triangle", g: "fill", m: "select", t: "text", s: "slice" };
     if (/^[a-z]$/.test(key) && e.altKey) return;
     if (tools[key]) { setTool(tools[key]); return; }
     const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
     if (arrows[k]) {
       const n = e.shiftKey ? 8 : 1, [dx, dy] = arrows[k];
-      if (!drag && (state.tool === "move" ? nudgeLayers(dx * n, dy * n) : nudge(dx * n, dy * n))) e.preventDefault();
+      if (!drag && (state.tool === "move" ? nudgeLayers(dx * n, dy * n) : state.tool === "slice" ? nudgeSlice(dx * n, dy * n) : nudge(dx * n, dy * n))) e.preventDefault();
       return;
     }
     switch (key) {
@@ -2050,14 +2161,23 @@ const Core = (() => {
       case "0": zoomFit(); break;
       case "?": openHelp(); break;
       case "Enter": if (!drag) place(); break;
-      case "Escape": if (drag) cancelDrag(); else if (state.text) cancelText(); else deselect(); break;
-      case "Delete": case "Backspace": if (!drag && selRect()) { e.preventDefault(); clearSelection(); } break;
+      case "Escape":
+        if (drag) cancelDrag();
+        else if (state.text) cancelText();
+        else if (state.tool === "slice" && state.slice) { state.slice = null; syncSlices(); render(); }
+        else deselect();
+        break;
+      case "Delete": case "Backspace":
+        if (drag) break;
+        if (state.tool === "slice" && selectedSlice()) { e.preventDefault(); deleteSlice(); }
+        else if (selRect()) { e.preventDefault(); clearSelection(); }
+        break;
       case "Shift": if (drag && SHAPES.includes(drag.tool)) shapePreview(true); break;
-      case " ":                              // held while dragging a shape or a selection frame: it moves along
+      case " ":                              // held while dragging a shape, a selection frame or a new slice: it moves along
         if (!drag) return;
         e.preventDefault();
         spaceHeld = true;
-        if (SHAPES.includes(drag.tool) || drag.mode === "marquee") drag.space = true;
+        if (SHAPES.includes(drag.tool) || drag.mode === "marquee" || (drag.tool === "slice" && drag.mode === "new")) drag.space = true;
         break;
       default: return;
     }
@@ -2144,6 +2264,7 @@ const Core = (() => {
     octx.lineWidth = lw;
     if (state.layoutOn) drawLayout(at, lw);    // under the guides and the markers
     drawGuides(at, lw);
+    drawSlices(at, lw, dpr);
     if (lastP) setCursor(lastP);               // the cursor follows tool changes and new selections, too
     const m = marker();
     if (m) {
@@ -2185,6 +2306,34 @@ const Core = (() => {
     for (const v of shownGuides("x")) octx.fillRect(Math.min(W - lw, at(v)), 0, lw, H);
     for (const v of shownGuides("y")) octx.fillRect(0, Math.min(H - lw, at(v)), W, lw);
   }
+  function drawSlices(at, lw, dpr) {         // the slices as boxes on the pixel edges, named; the selected one thicker, with the Slice tool's corner handles
+    const draft = drag && drag.tool === "slice" && drag.mode === "new" ? drag.draft : null;
+    const list = [...(state.slicesOn ? state.slices : []), ...(draft ? [draft] : [])];
+    if (!list.length) return;
+    const color = token("--slice"), th = Math.round(12 * dpr);
+    octx.setLineDash([]);
+    octx.font = `600 ${9 * dpr}px ${token("--font-mono")}`;
+    octx.textBaseline = "middle";
+    for (const sl of list) {
+      const x = at(sl.x), y = at(sl.y), w = at(sl.x + sl.w) - x, h = at(sl.y + sl.h) - y, sel = !!sl.id && sl.id === state.slice, t = sel ? 2 * lw : lw;
+      octx.lineWidth = t;
+      octx.strokeStyle = color;
+      octx.strokeRect(x + t / 2, y + t / 2, w - t, h - t);
+      if (sl.name) {                         // its name on a tag inside the top-left corner
+        const m = octx.measureText(sl.name), tw = Math.round((m && m.width) || sl.name.length * 5 * dpr);
+        octx.fillStyle = color;
+        octx.fillRect(x + t, y + t, tw + 6 * dpr, th);
+        octx.fillStyle = token("--oled-off");
+        octx.fillText(sl.name, x + t + 3 * dpr, y + t + th / 2);
+      }
+      if (sel && state.tool === "slice") {   // the corner handles the tool drags
+        const hs = Math.round(6 * dpr);
+        octx.fillStyle = color;
+        for (const [cx, cy] of [[x, y], [x + w, y], [x, y + h], [x + w, y + h]]) octx.fillRect(cx - hs / 2, cy - hs / 2, hs, hs);
+      }
+    }
+    octx.lineWidth = lw;
+  }
   function ants(x, y, w, h, lw, dpr) {
     octx.setLineDash([]);
     octx.strokeStyle = token("--oled-on");
@@ -2208,7 +2357,9 @@ const Core = (() => {
     paintPixels(pctx, b, k, Math.floor((W - b.w) / 2), Math.floor((H - b.h) / 2));
   }
   function updateStatus() {
-    $("btn-bin").title = `Save a .zip with the pixels in the OS's sprite layout (.bin, ${C.binSize(state.w, state.h)} bytes, without the texts) and a .json with the texts and layers`;
+    const k = state.slices.length;
+    $("btn-bin").title = `Save a .zip with the pixels in the OS's sprite layout (.bin, ${C.binSize(state.w, state.h)} bytes, without the texts)${k ? `, ${k} slice${k === 1 ? "" : "s"}` : ""} and a .json with the texts and layers`;
+    syncSlices();
     $("st-zoom").textContent = `${state.zoom}×`;
     $("btn-undo").disabled = !history.undo.length && !state.float && !state.shift;
     $("btn-redo").disabled = !history.redo.length;
@@ -2239,6 +2390,8 @@ const Core = (() => {
     const r = selRect();
     if (r) s += `  ·  selection ${r.w} × ${r.h}`;
     if (hoverGuide) s += `  ·  guide ${hoverGuide.axis} ${hoverGuide.axis === "y" && state.osY ? state.h - hoverGuide.edge : hoverGuide.edge}`;
+    const sl = drag && drag.tool === "slice" && drag.mode === "move" ? state.slices.find(x => x.id === drag.sid) : sliceHover && sliceHover.slice;
+    if (sl) s += `  ·  slice ${sl.name} ${sl.w} × ${sl.h} at ${sl.x}, ${state.osY ? state.h - sl.y - sl.h : sl.y}`;
     $("st-pos").textContent = s;
   }
 
@@ -2277,6 +2430,7 @@ const Core = (() => {
     for (const el of gridInputs) if (el !== typing) el.value = String(state.layout[el.dataset.axis][el.dataset.key]);
     $("layout-on").checked = state.layoutOn;
     $("guides-on").checked = state.guidesOn;
+    $("slices-on").checked = state.slicesOn;
     $("rulers-on").checked = state.rulersOn;
     stageWrap.classList.toggle("no-rulers", !state.rulersOn);
   }
@@ -2311,6 +2465,7 @@ const Core = (() => {
   }
   $("layout-on").addEventListener("change", e => { state.layoutOn = e.target.checked; render(); save(); });
   $("guides-on").addEventListener("change", e => { state.guidesOn = e.target.checked; hoverGuide = null; render(); save(); });
+  $("slices-on").addEventListener("change", e => { state.slicesOn = e.target.checked; sliceHover = null; render(); save(); });
   $("rulers-on").addEventListener("change", e => { state.rulersOn = e.target.checked; showGrid(); render(); save(); });
 
   // ---- Guides: pulled out of a ruler (the top one gives guides across, the left one guides down), moved with the
@@ -2450,6 +2605,7 @@ const Core = (() => {
       change(() => {                           // every layer keeps its top-left corner; new area is clear
         for (const it of inOrder()) if (it.type === "layer") it.px = C.resize(view(it), w, h, C.CLEAR).px;
         state.guides = C.loadGuides(state.guides, w, h);   // guides off a smaller canvas go
+        state.slices = C.clipSlices(state.slices, w, h);   // slices are cut to it
         state.w = w;
         state.h = h;
       });
@@ -3052,6 +3208,207 @@ const Core = (() => {
   $("btn-layer-group").addEventListener("click", groupSelected);
   $("btn-layer-del").addEventListener("click", deleteSelected);
 
+  // ---- Slices: boxes over the canvas that come out as sprites of their own. The Slice tool drags one out, moves one
+  // or resizes one by a corner; their edges snap to the canvas's, the guides', the layout grid's and the other slices'.
+  // The panel lists them with their sizes; a click selects one, a double-click renames it. ----
+
+  const sliceList = $("slice-list"), sliceRows = new Map();
+  let sliceRenaming = null;
+  const selectedSlice = () => (state.slice && state.slices.find(x => x.id === state.slice)) || null;
+  function fixSliceSelection() { if (state.slice && !selectedSlice()) state.slice = null; }
+  function sliceAt(p) {                      // the slice under p: the selected one first, else the one drawn last
+    const sel = selectedSlice();
+    if (sel && inside(p, sel)) return sel;
+    for (let i = state.slices.length - 1; i >= 0; i--) if (inside(p, state.slices[i])) return state.slices[i];
+    return null;
+  }
+  function sliceHandleAt(e) {                // a corner handle of the selected slice within 6 CSS pixels of the pointer, or null
+    const sl = selectedSlice();
+    if (!sl) return null;
+    const r = canvas.getBoundingClientRect(), ux = r.width / state.w, uy = r.height / state.h;
+    let best = null, gap = 6;
+    for (const [cx, cy, corner] of [[sl.x, sl.y, "nw"], [sl.x + sl.w, sl.y, "ne"], [sl.x, sl.y + sl.h, "sw"], [sl.x + sl.w, sl.y + sl.h, "se"]]) {
+      const d = Math.hypot(e.clientX - (r.left + cx * ux), e.clientY - (r.top + cy * uy));
+      if (d <= gap) { gap = d; best = { slice: sl, corner }; }
+    }
+    return best;
+  }
+  function sliceHit(e, p) {                  // what the Slice tool would take hold of: a corner handle, a slice, or nothing
+    if (!state.slicesOn) return null;
+    const h = sliceHandleAt(e), sl = h || sliceAt(p);
+    return h || (sl ? { slice: sl } : null);
+  }
+  function snapEdges(axis, except) {         // the pixel edges a slice's edge snaps to: the canvas's, the shown guides' and layout grid's, the other slices'
+    const n = axis === "x" ? state.w : state.h, out = new Set([0, n]);
+    if (state.guidesOn) for (const v of state.guides[axis]) out.add(v);
+    if (state.layoutOn) for (const [a, b] of C.gridFields(n, state.layout[axis === "x" ? "cols" : "rows"])) { out.add(a); out.add(b + 1); }
+    for (const sl of state.slices) if (sl.id !== except) { out.add(axis === "x" ? sl.x : sl.y); out.add(axis === "x" ? sl.x + sl.w : sl.y + sl.h); }
+    return [...out];
+  }
+  function snapShift(v, edges, th) {         // how far v has to move to the nearest edge within th, or null
+    let best = null;
+    for (const c of edges) { const d = c - v; if (Math.abs(d) <= th && (best === null || Math.abs(d) < Math.abs(best))) best = d; }
+    return best;
+  }
+  const snapGap = () => Math.max(1, Math.ceil(5 / state.zoom));   // within 5 CSS pixels, at least a pixel
+  function sliceBox(fixed, q, except) {      // the box from a fixed corner (a pixel) to the dragged one q, the dragged edges snapped, on the canvas
+    const th = snapGap(), cx = v => Math.max(0, Math.min(state.w - 1, v)), cy = v => Math.max(0, Math.min(state.h - 1, v));
+    const fx = cx(fixed[0]), fy = cy(fixed[1]);
+    const edge = (v, f, axis) => {           // past the fixed corner the dragged edge is the far side of the pixel
+      const e = v >= f ? v + 1 : v, d = snapShift(e, snapEdges(axis, except), th);
+      return d === null ? v : v + d;
+    };
+    const px = cx(edge(q[0], fx, "x")), py = cy(edge(q[1], fy, "y"));
+    const x0 = Math.min(fx, px), x1 = Math.max(fx, px), y0 = Math.min(fy, py), y1 = Math.max(fy, py);
+    return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  }
+  function moveSlice(sl, x, y) {             // the slice at (x, y), the nearer of its two edges on each axis snapped, kept on the canvas
+    const th = snapGap();
+    const shift = (v, size, axis) => {
+      const edges = snapEdges(axis, sl.id), a = snapShift(v, edges, th), b = snapShift(v + size, edges, th);
+      return a === null ? (b === null ? 0 : b) : b === null || Math.abs(a) <= Math.abs(b) ? a : b;
+    };
+    sl.x = Math.max(0, Math.min(state.w - sl.w, x + shift(x, sl.w, "x")));
+    sl.y = Math.max(0, Math.min(state.h - sl.h, y + shift(y, sl.h, "y")));
+  }
+  function endSlice(d) {                     // a new slice, a moved one or a resized one: one undo step each; a click only chose one
+    if (d.mode === "new") {
+      if (!d.draft) return;
+      const sl = C.slice(nextSliceName(), d.draft.x, d.draft.y, d.draft.w, d.draft.h);
+      state.slices = [...state.slices, sl];
+      state.slice = sl.id;
+      if (!state.slicesOn) { state.slicesOn = true; showGrid(); }
+    }
+    record(d.before);
+    syncSlices();
+  }
+  function nextSliceName() {
+    const n = state.slices.reduce((m, sl) => { const k = /^Slice (\d+)$/.exec(sl.name); return k ? Math.max(m, Number(k[1])) : m; }, 0) + 1;
+    return `Slice ${n}`;
+  }
+  function addSlice(r) {                     // a new slice around r, selected, with the Slice tool to go on with
+    place();
+    const sl = C.slice(nextSliceName(), r.x, r.y, r.w, r.h);
+    change(() => { state.slices = [...state.slices, sl]; });
+    state.slice = sl.id;
+    if (!state.slicesOn) { state.slicesOn = true; showGrid(); save(); }
+    setTool("slice");
+    syncSlices();
+    render();
+    return sl;
+  }
+  function deleteSlice(id = state.slice) {   // the next one in the list is selected, else the one before
+    const i = state.slices.findIndex(sl => sl.id === id);
+    if (i < 0) return;
+    change(() => { state.slices = state.slices.filter(sl => sl.id !== id); });
+    state.slice = (state.slices[i] || state.slices[i - 1] || {}).id || null;
+    syncSlices();
+    render();
+  }
+  function nudgeSlice(dx, dy) {              // the Slice tool's arrow keys move the selected slice, a pixel (or 8) a press
+    const sl = selectedSlice();
+    if (!sl) return false;
+    change(() => { sl.x = Math.max(0, Math.min(state.w - sl.w, sl.x + dx)); sl.y = Math.max(0, Math.min(state.h - sl.h, sl.y + dy)); });
+    return true;
+  }
+  function renderSlices() {                  // builds the rows anew; a change of selection only needs syncSlices()
+    if (sliceRenaming) return;
+    fixSliceSelection();
+    const scroll = sliceList.scrollTop;
+    sliceRows.clear();
+    const out = state.slices.map(sl => {
+      const row = document.createElement("div"), box = document.createElement("span");
+      row.className = "sr";
+      row.dataset.id = sl.id;
+      row.tabIndex = -1;
+      row.setAttribute("role", "option");
+      row.setAttribute("aria-label", `${sl.name}, ${sl.w} by ${sl.h}`);
+      box.className = "sr-box";
+      box.setAttribute("aria-hidden", "true");
+      row.append(box, Object.assign(document.createElement("span"), { className: "sr-name", textContent: sl.name }),
+        Object.assign(document.createElement("span"), { className: "sr-size", textContent: `${sl.w} × ${sl.h}` }));
+      sliceRows.set(sl.id, row);
+      return row;
+    });
+    if (!out.length) out.push(Object.assign(document.createElement("p"), { className: "lr-empty", textContent: "No slices. Drag one out with the Slice tool, or make one from the selection or a layer." }));
+    sliceList.replaceChildren(...out);
+    sliceList.scrollTop = scroll;
+    syncSlices();
+  }
+  function syncSlices() {                    // the selection mark, the row Tab goes to, and which buttons work
+    for (const [id, row] of sliceRows) row.setAttribute("aria-selected", String(id === state.slice));
+    const stop = sliceRows.get(state.slice) || sliceRows.values().next().value;
+    for (const row of sliceRows.values()) row.tabIndex = row === stop ? 0 : -1;
+    const a = state.active && find(state.active);
+    $("btn-slice-sel").disabled = !selRect();
+    $("btn-slice-layer").disabled = !a || a.item.type === "group";
+    $("btn-slice-del").disabled = !selectedSlice();
+  }
+  sliceList.addEventListener("pointerdown", e => {
+    const row = e.target.closest(".sr");
+    if (!row || e.button !== 0 || e.target.closest("input")) return;
+    state.slice = row.dataset.id;
+    syncSlices();
+    render();
+  });
+  sliceList.addEventListener("dblclick", e => {
+    const row = e.target.closest(".sr");
+    if (row && !e.target.closest("input")) renameSlice(row.dataset.id);
+  });
+  function renameSlice(id) {
+    const row = sliceRows.get(id), sl = state.slices.find(x => x.id === id);
+    if (!row || !sl || sliceRenaming) return;
+    sliceRenaming = id;
+    const input = Object.assign(document.createElement("input"), { className: "lr-input", value: sl.name, maxLength: 40, spellcheck: false, autocomplete: "off" });
+    input.setAttribute("aria-label", "Slice name");
+    row.querySelector(".sr-name").replaceWith(input);
+    input.focus();
+    input.select();
+    let done = false;
+    const finish = (keep, refocus) => {
+      if (done) return;
+      done = true;
+      sliceRenaming = null;
+      const name = input.value.trim(), t = state.slices.find(x => x.id === id);
+      if (keep && t && name && name !== t.name) change(() => { t.name = name; });
+      renderSlices();
+      render();
+      if (refocus && sliceRows.has(id)) sliceRows.get(id).focus();
+    };
+    input.addEventListener("keydown", e => {
+      e.stopPropagation();
+      if (e.key === "Enter") { e.preventDefault(); finish(true, true); }
+      else if (e.key === "Escape") { e.preventDefault(); finish(false, true); }
+    });
+    input.addEventListener("blur", () => finish(true, false));
+  }
+  sliceList.addEventListener("keydown", e => {   // ↑ ↓ select, Enter or F2 renames, Delete deletes
+    const row = e.target, sl = row.classList && row.classList.contains("sr") && state.slices.find(x => x.id === row.dataset.id);
+    if (!sl) return;
+    const all = [...sliceRows.values()], i = all.indexOf(row);
+    const go = r => { if (r) { state.slice = r.dataset.id; syncSlices(); render(); r.focus(); } };
+    if (e.key === "ArrowUp") go(all[i - 1]);
+    else if (e.key === "ArrowDown") go(all[i + 1]);
+    else if (e.key === "Enter" || e.key === "F2") renameSlice(sl.id);
+    else if (e.key === "Delete" || e.key === "Backspace") { deleteSlice(sl.id); const r = sliceRows.get(state.slice); if (r) r.focus(); }
+    else return;
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  $("btn-slice-sel").addEventListener("click", () => {
+    const r = selRect();
+    if (!r) { toast("Select an area on the canvas first."); return; }
+    addSlice(r);
+  });
+  $("btn-slice-layer").addEventListener("click", () => {   // around what the selected layer holds: its pixels, or a text's letters
+    const a = state.active && find(state.active);
+    if (!a || a.item.type === "group") { toast("Select a layer first."); return; }
+    const r = a.item.type === "text" ? C.textBounds(a.item) : C.bounds(view(a.item)), c = r && clipRect(r.x, r.y, r.w, r.h);
+    if (!c) { toast(`${a.item.name} holds nothing to put a slice around.`); return; }
+    addSlice(c);
+  });
+  $("btn-slice-del").addEventListener("click", () => deleteSlice());
+
   // ---- Stamps: ready-made pieces and your own, dragged onto the canvas or clicked into its middle. A stamp floats on
   // the selected layer like pasted pixels (the Select tool takes over) until Enter or a click next to it places it. ----
 
@@ -3213,7 +3570,7 @@ const Core = (() => {
   // as tabs; a tab dragged out gets its own place again. The layout stays in this browser. ----
 
   const side = document.querySelector("aside.side");
-  const PANELS = ["colors", "layers", "stamps", "file", "preview"];
+  const PANELS = ["colors", "layers", "stamps", "slices", "file", "preview"];
   const PANEL_STORE = "model-sprite-editor:panels";
   const panelEl = Object.fromEntries(PANELS.map(k => [k, side.querySelector(`[data-panel="${k}"]`)]));
   const panelTitle = k => panelEl[k].querySelector("h2").textContent;
@@ -3381,20 +3738,29 @@ const Core = (() => {
     // The picture as the device shows it (white = lit = light here), plus the layers, the layout grid and the guides.
     // Version 3: not inverted, unlike 2.
     const png = await C.encodePng(composite(), scale, { v: 3, device: state.device, layers: C.saveItems(state.items),
-      ...(C.hasGrid(state.layout) ? { grid: state.layout } : {}), ...(C.hasGuides(state.guides) ? { guides: state.guides } : {}) });
+      ...(C.hasGrid(state.layout) ? { grid: state.layout } : {}), ...(C.hasGuides(state.guides) ? { guides: state.guides } : {}),
+      ...(C.hasSlices(state.slices) ? { slices: C.saveSlices(state.slices) } : {}) });
     if (await offer(name, png, "image/png")) toast(`Saved ${name}`);
   }
-  function describeJson(base) {              // the screen described (Core: describe), number pairs and boxes kept on one line
-    const about = C.describe(state.items, state.w, state.h, { name: state.name, device: state.device, grid: state.layout, guides: state.guides,
+  function describeJson(base, stems = []) {  // the screen described (Core: describe), number pairs and boxes kept on one line
+    const slices = stems.map(([sl, stem]) => ({ ...sl, files: { bin: `${stem}.bin`, png: `${stem}.png` } }));
+    const about = C.describe(state.items, state.w, state.h, { name: state.name, device: state.device, grid: state.layout, guides: state.guides, slices,
       files: { bin: `${base}.bin`, png: `${base}.png`, png8: `${base}@8x.png` } });
     return new TextEncoder().encode(`${JSON.stringify(about, null, 2).replace(/\[\s+(-?\d+(?:,\s+-?\d+)*)\s+\]/g, (m, n) => `[${n.split(/,\s+/).join(", ")}]`)}\n`);
   }
-  async function saveBin() {                 // the pixels without the texts (the device draws those) and the JSON about it all,
-    place();                                 // in one ZIP: of two downloads in a row, a browser may keep only the last
+  async function saveBin() {                 // the pixels without the texts (the device draws those), each slice's, and the JSON
+    place();                                 // about it all, in one ZIP: of two downloads in a row, a browser may keep only the last
     const base = fileBase(), name = `${base}.bin`, json = `${base}.json`, zip = `${base}.zip`;
-    const bytes = C.toBin(composite(live(), false)), about = describeJson(base);   // a set bit lights up: light here
-    if (await offer(zip, C.zipFiles([{ name, data: bytes }, { name: json, data: about }]), "application/zip")) {
-      toast(`Saved ${zip} with ${name} (${bytes.length} bytes) and ${json} inside`);
+    const pic = composite(live(), false), bytes = C.toBin(pic), stems = C.sliceStems(state.slices, safeName());   // a set bit lights up: light here
+    const files = [{ name, data: bytes }];
+    for (const [sl, stem] of stems) {        // each slice: its pixels in the OS's layout, and a PNG to look at
+      const b = C.crop(pic, sl.x, sl.y, sl.w, sl.h);
+      files.push({ name: `${stem}.bin`, data: C.toBin(b) }, { name: `${stem}.png`, data: await C.encodePng(b, 1, { v: 3, device: state.device }) });
+    }
+    files.push({ name: json, data: describeJson(base, stems) });
+    if (await offer(zip, C.zipFiles(files), "application/zip")) {
+      const n = stems.length;
+      toast(`Saved ${zip} with ${name} (${bytes.length} bytes)${n ? `, ${n} slice${n === 1 ? "" : "s"}` : ""} and ${json} inside`);
     }
   }
   function binSprite(bytes, name) {
@@ -3424,7 +3790,7 @@ const Core = (() => {
     }
     if (meta && meta.v === 2) b = C.invert(b);   // white = lit = light, except in the PNGs of version 2, which were inverted
     const sprite = C.toSprite(b);
-    let layers = null, grid = null, guides = null;   // a PNG this editor saved carries its layers, layout grid and guides
+    let layers = null, grid = null, guides = null, slices = null;   // a PNG this editor saved carries its layers, layout grid, guides and slices
     if (meta && meta.w === sprite.w && meta.h === sprite.h) {
       if (meta.layers) {
         try { layers = C.loadItems(meta.layers, meta.w, meta.h); } catch (err) { layers = null; }
@@ -3432,15 +3798,16 @@ const Core = (() => {
       }
       if (meta.grid) grid = C.loadGrid(meta.grid);
       if (meta.guides) guides = C.loadGuides(meta.guides, meta.w, meta.h);
+      if (meta.slices) slices = C.loadSlices(meta.slices, meta.w, meta.h);
     }
-    return { b: sprite, layers, grid, guides, device: meta && meta.device };
+    return { b: sprite, layers, grid, guides, slices, device: meta && meta.device };
   }
   async function openBytes(name, bytes) {    // a PNG or a .bin becomes the document; throws with a message otherwise
     let got;
     if (C.isPng(bytes)) got = await pngSprite(bytes, name);
     else if (/\.bin$/i.test(name)) got = { b: binSprite(bytes, name), layers: null };
     else throw new Error(`${name} is neither a PNG nor a .bin file.`);
-    const { b, layers, grid, guides, device } = got;
+    const { b, layers, grid, guides, slices, device } = got;
       state.sel = null;
       change(() => {
         state.w = b.w;
@@ -3448,6 +3815,8 @@ const Core = (() => {
         state.items = layers || [C.layer("Layer 1", b.w, b.h, b.px)];
         state.layout = grid || C.loadGrid(null);   // the file is the document now, its layout grid and guides too
         state.guides = guides || C.loadGuides(null);
+        state.slices = slices || [];
+        state.slice = null;
         if (DEVICES.includes(device)) state.device = device;
       });
     showGrid();
@@ -3462,21 +3831,23 @@ const Core = (() => {
     return `${b.w} × ${b.h}${layers ? `, ${n} layer${n === 1 ? "" : "s"}` : ""}`;
   }
   function addTexts(name, bytes) {           // the texts of a .json (Core: describe) come back as text layers on top,
-    let d, texts;                            // its layout grid and guides with them → "2 texts and 3 guides", "0 texts" for none
+    let d, texts;                            // its layout grid, guides and slices with them → "2 texts and 3 guides", "0 texts" for none
     try { d = JSON.parse(new TextDecoder().decode(bytes)); } catch (err) { throw new Error(`${name} isn't a JSON file.`); }
     try { texts = C.textsFromDescription(d, state.w, state.h); } catch (err) { throw new Error(`${name}: ${err.message}`); }
     const grid = C.gridFromDescription(d), n = texts.length;
     const guides = C.guidesFromDescription(d, state.w, state.h), k = C.hasGuides(guides) ? guides.x.length + guides.y.length : 0;
-    if (n || grid || k) {
+    const slices = C.slicesFromDescription(d, state.w, state.h), m = slices ? slices.length : 0;
+    if (n || grid || k || m) {
       change(() => {
         state.items.unshift(...texts);
         if (grid) state.layout = grid;
         if (k) state.guides = guides;
+        if (m) { state.slices = slices; state.slice = null; }
       });
       renderLayers();
       showGrid();
     }
-    const parts = [n && `${n} text${n === 1 ? "" : "s"}`, grid && "the layout grid", k && `${k} guide${k === 1 ? "" : "s"}`].filter(Boolean);
+    const parts = [n && `${n} text${n === 1 ? "" : "s"}`, grid && "the layout grid", k && `${k} guide${k === 1 ? "" : "s"}`, m && `${m} slice${m === 1 ? "" : "s"}`].filter(Boolean);
     return parts.length ? `${parts.slice(0, -1).join(", ")}${parts.length > 1 ? " and " : ""}${parts[parts.length - 1]}` : "0 texts";
   }
   async function unzipped(bytes) {           // the files in a ZIP: stored ones as they are, deflated ones where the browser can
@@ -3587,9 +3958,10 @@ const Core = (() => {
       }
       localStorage.setItem(STORE, JSON.stringify({
         v: 4, name: state.name, device: state.device, w: state.w, h: state.h, items: C.saveItems(items), layout: state.layout, guides: state.guides,
+        slices: C.saveSlices(state.slices),
         prefs: { tool: state.tool, primary: state.primary, secondary: state.secondary, size: state.size,
           filled: state.filled, radius: state.radius, dir: state.dir, align: state.align, textStyle: state.textStyle, font: state.font, grid: state.grid, osY: state.osY, stampTab: state.stampTab,
-          layoutOn: state.layoutOn, guidesOn: state.guidesOn, rulersOn: state.rulersOn },
+          layoutOn: state.layoutOn, guidesOn: state.guidesOn, rulersOn: state.rulersOn, slicesOn: state.slicesOn },
       }));
     } catch (err) { /* storage is a convenience */ }
   }
@@ -3603,10 +3975,12 @@ const Core = (() => {
         if (d.v === 3) C.oldTexts(state.items);
         state.layout = C.loadGrid(d.layout);
         state.guides = C.loadGuides(d.guides, d.w, d.h);
+        state.slices = C.loadSlices(d.slices, d.w, d.h);
         state.w = d.w;
         state.h = d.h;
         if (untouchedExample(state.items, d.w, d.h)) {   // today's start screen takes its place
           state.items = C.startItems();
+          state.slices = [];
           state.w = 128;
           state.h = 64;
         }
@@ -3639,6 +4013,7 @@ const Core = (() => {
       if (typeof p.layoutOn === "boolean") state.layoutOn = p.layoutOn;
       if (typeof p.guidesOn === "boolean") state.guidesOn = p.guidesOn;
       if (typeof p.rulersOn === "boolean") state.rulersOn = p.rulersOn;
+      if (typeof p.slicesOn === "boolean") state.slicesOn = p.slicesOn;
       if (["basics", "synth", "ui", "custom"].includes(p.stampTab)) state.stampTab = p.stampTab;
       return true;
     } catch (err) {
@@ -3647,6 +4022,7 @@ const Core = (() => {
       state.items = C.startItems();
       state.layout = C.loadGrid(null);
       state.guides = C.loadGuides(null);
+      state.slices = [];
       return false;
     }
   }
@@ -3691,6 +4067,7 @@ const Core = (() => {
   updateTools();
   selectFirstLayer();
   renderLayers();
+  renderSlices();
   loadCustom();
   renderStamps();
   showGrid();

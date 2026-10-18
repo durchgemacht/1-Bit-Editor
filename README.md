@@ -8,7 +8,7 @@ single HTML file that runs in the browser, with no build step and no dependencie
 - **Canvas size:** the whole 128 × 64 screen of Model:Cycles and Model:Samples, or any custom size up to that.
 - **Tools:** move (the selected layers), brush, line, rectangle, rounded rectangle (radius 1 to 8 pixels; radius 1
   leaves just the 4 corner pixels free, as the OS's boxes do), ellipse, triangle (pointing up, right, down or left),
-  fill, select (move, copy, nudge) and text.
+  fill, select (move, copy, nudge), text and slice.
 - **Text layers:** the Text tool makes layers that stay text: string, anchor, font (the editor's own Small 3 × 5,
   Regular 5 × 7 and Large 15 × 21), alignment and style (Dark on light, Light, Light on dark: the OS's inverted, plain
   and boxed text). The .bin leaves them out, because the
@@ -36,6 +36,12 @@ single HTML file that runs in the browser, with no build step and no dependencie
   pixels and shows in cyan, and while you drag it the ruler shows where it lands. The Move tool moves it, and dragging
   it off the canvas removes it. Guides are saved like the layout grid, and the .json lists them. Guides and Rulers at
   the bottom hide them.
+- **Slices:** boxes over the screen that come out as sprites of their own, so a whole screen can be drawn in place
+  and its icons cut out of it. The Slice tool drags one out; drag a slice to move it, its corners to resize it, Delete
+  removes it, and its edges snap to the canvas, the guides, the layout grid and the other slices. The Slices panel
+  lists them with their sizes, renames them (double-click) and makes one around the selection or around what the
+  selected layer holds. They show in green, are never part of the pixels, and are saved with the sprite and in its
+  PNG; Slices at the bottom hides them.
 - What you draw is what the device shows: light pixels are lit, dark ones stay off. The canvas under all layers is
   light, a lit screen; for a dark screen like the OS's own, fill a layer with Dark. The left mouse button starts out
   with Dark, the right one with Light. Any color or pattern can go on either button; <kbd>X</kbd> swaps them. Moved
@@ -60,7 +66,7 @@ The File panel on the right holds Open and Export (Clear sits in the top bar, ne
 |---|---|---|
 | Save PNG | `name_48x33.png` | The working file: 1-bit as on the device (white = lit), with the layers inside. Open it again to keep drawing. |
 | PNG ×8 | `name_48x33@8x.png` | A bigger copy for sharing. It opens again at its real size, layers and all. |
-| .bin | `name_48x33.zip` | Two files in one ZIP: `name_48x33.bin`, the visible layers' pixels without the texts in the OS's own sprite layout, ready for a mod (a set bit is a lit pixel, light in the editor); and `name_48x33.json`, the screen described for whoever builds it into a mod, a person or an agent (see below). |
+| .bin | `name_48x33.zip` | One ZIP: `name_48x33.bin`, the visible layers' pixels without the texts in the OS's own sprite layout, ready for a mod (a set bit is a lit pixel, light in the editor); `name_48x33.json`, the screen described for whoever builds it into a mod, a person or an agent (see below); and for each slice its own `name_icon_25x22.bin` and `.png`. |
 
 The PNGs show the picture of the visible layers. The layers themselves ride along in a text chunk
 (`model-sprite-editor`), so other programs just see the picture and the editor gets every layer back.
@@ -70,7 +76,8 @@ The PNGs show the picture of the visible layers. The layers themselves ride alon
 It comes with the .bin, in the same ZIP, and says what the pictures can't: the texts with their anchors (x at the left
 edge, middle or right edge, y on the bottom row of the capitals), font, alignment and style, so the device can draw
 them in its own fonts, and every layer and group with the box it covers. With a layout grid it also lists the columns
-as `[x0, x1]` and the rows as `[y0, y1]`, rows from the top, and the guides as the pixel edges they lie on.
+as `[x0, x1]` and the rows as `[y0, y1]`, rows from the top, and the guides as the pixel edges they lie on. With slices
+it lists each one's name, box, size and files, and a text that lies inside a slice names it.
 Coordinates are the OS's: x from the left, y from the bottom row, boxes as `[x0, y0, x1, y1]` with both corners
 included. Show an agent the PNG for the look and this file for the numbers. The editor uses only its own stand-in
 fonts, never the device's.
@@ -114,7 +121,7 @@ Open `index.html` in a browser. To put it online, serve the folder as it is, for
 |---|---|
 | <kbd>V</kbd> | Move the selected layers |
 | <kbd>B</kbd> <kbd>L</kbd> <kbd>R</kbd> <kbd>U</kbd> <kbd>O</kbd> <kbd>A</kbd> | Brush, line, rectangle, rounded rectangle, ellipse, triangle |
-| <kbd>G</kbd> <kbd>M</kbd> <kbd>T</kbd> | Fill, select, text |
+| <kbd>G</kbd> <kbd>M</kbd> <kbd>T</kbd> <kbd>S</kbd> | Fill, select, text, slice |
 | <kbd>X</kbd> | Swap the left and right color |
 | <kbd>[</kbd> <kbd>]</kbd> | Brush size or line width |
 | <kbd>F</kbd> | Outline or filled shapes |
@@ -122,17 +129,17 @@ Open `index.html` in a browser. To put it online, serve the folder as it is, for
 | <kbd>Space</kbd> while dragging | Move the shape or the selection frame |
 | <kbd>⌘/Ctrl</kbd> <kbd>Z</kbd>, <kbd>⌘/Ctrl</kbd> <kbd>Shift</kbd> <kbd>Z</kbd> | Undo, redo |
 | <kbd>⌘/Ctrl</kbd> <kbd>A</kbd> <kbd>C</kbd> <kbd>X</kbd> <kbd>V</kbd> | Select all, copy, cut, paste |
-| Arrow keys | Nudge the selection by 1 pixel, with <kbd>Shift</kbd> by 8; with Move, the selected layers |
-| <kbd>Enter</kbd>, <kbd>Esc</kbd> | Place moved pixels or text; deselect or drop the text |
+| Arrow keys | Nudge the selection by 1 pixel, with <kbd>Shift</kbd> by 8; with Move, the selected layers; with Slice, the selected slice |
+| <kbd>Enter</kbd>, <kbd>Esc</kbd> | Place moved pixels or text; deselect, drop the text or let go of the slice |
 | <kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd> | Zoom in, zoom out, fit |
 | <kbd>⌘/Ctrl</kbd> <kbd>S</kbd>, <kbd>⌘/Ctrl</kbd> <kbd>O</kbd> | Save PNG, open a file |
 | <kbd>Shift</kbd> <kbd>R</kbd>, <kbd>Shift</kbd> <kbd>G</kbd> | Show or hide the rulers, the layout grid |
 | <kbd>⌘/Ctrl</kbd> <kbd>'</kbd>, <kbd>⌘/Ctrl</kbd> <kbd>;</kbd> | Show or hide the pixel grid, the guides (Ä and Ö on a German keyboard) |
-| <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Enter</kbd>, <kbd>Delete</kbd> in the layer list | The layer above or below, rename, delete |
+| <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Enter</kbd>, <kbd>Delete</kbd> in the layer list or the slice list | The one above or below, rename, delete |
 
 ## Tests
 
-`node tests/core.test.js` checks the drawing and file code (shapes, patterns, fonts, layers, .bin, PNG, ZIP). It
+`node tests/core.test.js` checks the drawing and file code (shapes, patterns, fonts, layers, slices, .bin, PNG, ZIP). It
 needs Node 18 or newer and nothing else.
 
 ## Not in this version

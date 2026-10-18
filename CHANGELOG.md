@@ -13,6 +13,13 @@
   .json lists them, y counted from the bottom.
 - **Shortcuts** to show or hide: Shift+R the rulers, Shift+G the layout grid and ⌘/Ctrl ' the pixel grid, as in Figma;
   ⌘/Ctrl ; the guides, as in Photoshop and Affinity. On a German keyboard the last two are Ä and Ö.
+- **Slices:** boxes over the screen that come out as sprites of their own, so a whole screen can be drawn in place and
+  its icons cut out of it. The Slice tool (S) drags one out; drag a slice to move it, its corners to resize it, Delete
+  removes it, and its edges snap to the canvas, the guides, the layout grid and the other slices. The Slices panel
+  lists them with their sizes, renames them and makes one from the selection or from what the selected layer holds.
+  The .bin button's ZIP holds each slice's .bin and PNG beside the whole screen's, and the .json lists their boxes in
+  the OS's coordinates; a text inside a slice names it. Slices are saved with the sprite and in its PNG, and
+  **Slices** at the bottom hides them.
 
 ## 0.1 (2026-10-17)
 
