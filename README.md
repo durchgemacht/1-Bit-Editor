@@ -28,14 +28,14 @@ single HTML file that runs in the browser, with no build step and no dependencie
   title bar (128 × 13) and 1/2 Screen (64 × 64, dark, corners rounded 4 px) under UI.
   They bring their own dark and light pixels and float on the selected layer
   until you place them. Under Custom, Save selection keeps a selection as your own stamp (in this browser).
-- **Layout grid:** columns and rows laid over the canvas to count by, each with a count, the gap between them and the
-  margin outside them; what doesn't divide evenly goes to the first ones, a pixel each. Thin red lines show their
-  edges, never in the pixels, and the status line names the column and row under the pointer. The grid is saved with
-  the sprite and in its PNG, and the .json lists it.
+- **Layout grid:** the grid button left of the size folds out columns and rows laid over the canvas to count by, each
+  with a count, the gap between them and the margin outside them; what doesn't divide evenly goes to the first ones, a
+  pixel each. Thin red lines show their edges, never in the pixels, and the status line names the column and row under
+  the pointer. The grid is saved with the sprite and in its PNG, and the .json lists it.
 - **Guides and rulers:** drag a guide out of the ruler above or left of the canvas; it lies on the edge between two
-  pixels and shows in cyan, and while you drag it the ruler shows where it lands. The Move tool moves it, dragging it
-  off the canvas removes it, and Clear guides removes them all. Guides are saved like the layout grid, and the .json
-  lists them. Guides and Rulers at the bottom hide them.
+  pixels and shows in cyan, and while you drag it the ruler shows where it lands. The Move tool moves it, and dragging
+  it off the canvas removes it. Guides are saved like the layout grid, and the .json lists them. Guides and Rulers at
+  the bottom hide them.
 - What you draw is what the device shows: light pixels are lit, dark ones stay off. The canvas under all layers is
   light, a lit screen; for a dark screen like the OS's own, fill a layer with Dark. The left mouse button starts out
   with Dark, the right one with Light. Any color or pattern can go on either button; <kbd>X</kbd> swaps them. Moved

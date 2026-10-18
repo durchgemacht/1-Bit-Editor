@@ -283,9 +283,11 @@ body.arranging, body.arranging * { cursor: grabbing !important; user-select: non
 .layout-form { display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); gap: 6px 8px; align-items: center; }
 .layout-axis { font-size: 12px; color: var(--muted); }
 .layout-form input { width: 100%; min-width: 0; height: 28px; padding: 0 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--key); font-variant-numeric: tabular-nums; }
-.layout-sizes { margin: 8px 0 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.layout-guides { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
-.layout-guides .btn { flex: none; height: 28px; font-size: 12px; }
+.layout-menu { position: relative; }
+#btn-layout { padding: 0 8px; }
+.layout-pop { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; width: 17rem; max-width: calc(100vw - 32px); padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22); }
+.layout-pop:not([hidden]) { animation: unfold 0.16s ease-out; }
+.layout-pop h2 { margin: 0 0 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .preview-wrap { display: grid; place-items: center; padding: 10px; background: var(--bezel); border-radius: 8px; overflow: hidden; }
 #preview { display: block; filter: drop-shadow(0 0 1.5px var(--oled-glow)); }
 
@@ -336,7 +338,7 @@ dialog p { margin: 8px 0; max-width: 62ch; }
 }
 @media (prefers-reduced-motion: reduce) {
   .toast, .tooltip, .tooltip.show, .dd-list, .dd.open .dd-list, .caret, .lr .caret { transition: none; }
-  .export-options:not([hidden]) { animation: none; }
+  .export-options:not([hidden]), .layout-pop:not([hidden]) { animation: none; }
 }
 </style>
 </head>
@@ -347,6 +349,24 @@ dialog p { margin: 8px 0; max-width: 62ch; }
       <h1 class="logo" id="logo"><span class="sr-only">1-Bit Editor</span></h1>
     </div>
     <div class="doc">
+      <div class="layout-menu">
+        <button class="btn" id="btn-layout" type="button" aria-expanded="false" aria-controls="layout-pop" aria-label="Layout grid" title="Layout grid: columns and rows to count by"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="1"/><path d="M9.5 5v14M14.5 5v14M4 12h16"/></svg><svg class="caret" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3"/></svg></button>
+        <div class="layout-pop" id="layout-pop" role="dialog" aria-labelledby="h-layout" hidden>
+          <h2 id="h-layout">Layout grid</h2>
+          <div class="layout-form" role="group" aria-labelledby="h-layout" aria-describedby="layout-help">
+            <span></span><span class="label">Count</span><span class="label">Gap</span><span class="label">Margin</span>
+            <span class="layout-axis">Columns</span>
+            <input type="number" id="lg-cols-count" data-axis="cols" data-key="count" min="0" max="64" step="1" inputmode="numeric" aria-label="Columns">
+            <input type="number" id="lg-cols-gap" data-axis="cols" data-key="gap" min="0" max="64" step="1" inputmode="numeric" aria-label="Gap between the columns, in pixels">
+            <input type="number" id="lg-cols-margin" data-axis="cols" data-key="margin" min="0" max="64" step="1" inputmode="numeric" aria-label="Margin left and right of the columns, in pixels">
+            <span class="layout-axis">Rows</span>
+            <input type="number" id="lg-rows-count" data-axis="rows" data-key="count" min="0" max="64" step="1" inputmode="numeric" aria-label="Rows">
+            <input type="number" id="lg-rows-gap" data-axis="rows" data-key="gap" min="0" max="64" step="1" inputmode="numeric" aria-label="Gap between the rows, in pixels">
+            <input type="number" id="lg-rows-margin" data-axis="rows" data-key="margin" min="0" max="64" step="1" inputmode="numeric" aria-label="Margin above and below the rows, in pixels">
+          </div>
+          <p class="sr-only" id="layout-help">Columns and rows laid over the canvas to count by. They are never part of the pixels; they are saved with the sprite and listed in the .json. A count of 0 leaves that side out. Guides are dragged out of the rulers.</p>
+        </div>
+      </div>
       <label class="field" for="doc-size"><span>Size</span><select id="doc-size"></select></label>
       <span class="custom" id="custom-size" hidden>
         <input id="custom-w" type="number" min="1" max="128" aria-label="Width in pixels">
@@ -475,24 +495,6 @@ dialog p { margin: 8px 0; max-width: 62ch; }
         <h2 id="h-preview">On screen</h2>
         <div class="preview-wrap" id="preview-wrap"><canvas id="preview" role="img" aria-label="The sprite in the middle of the 128 × 64 screen"></canvas></div>
       </section>
-
-      <section class="panel layout" data-panel="layout" aria-labelledby="h-layout">
-        <h2 id="h-layout">Layout grid</h2>
-        <div class="layout-form" role="group" aria-labelledby="h-layout" aria-describedby="layout-help">
-          <span></span><span class="label">Count</span><span class="label">Gap</span><span class="label">Margin</span>
-          <span class="layout-axis">Columns</span>
-          <input type="number" id="lg-cols-count" data-axis="cols" data-key="count" min="0" max="64" step="1" inputmode="numeric" aria-label="Columns">
-          <input type="number" id="lg-cols-gap" data-axis="cols" data-key="gap" min="0" max="64" step="1" inputmode="numeric" aria-label="Gap between the columns, in pixels">
-          <input type="number" id="lg-cols-margin" data-axis="cols" data-key="margin" min="0" max="64" step="1" inputmode="numeric" aria-label="Margin left and right of the columns, in pixels">
-          <span class="layout-axis">Rows</span>
-          <input type="number" id="lg-rows-count" data-axis="rows" data-key="count" min="0" max="64" step="1" inputmode="numeric" aria-label="Rows">
-          <input type="number" id="lg-rows-gap" data-axis="rows" data-key="gap" min="0" max="64" step="1" inputmode="numeric" aria-label="Gap between the rows, in pixels">
-          <input type="number" id="lg-rows-margin" data-axis="rows" data-key="margin" min="0" max="64" step="1" inputmode="numeric" aria-label="Margin above and below the rows, in pixels">
-        </div>
-        <p class="layout-sizes" id="layout-sizes" aria-live="polite"></p>
-        <div class="layout-guides"><span id="guides-count" aria-live="polite"></span><button class="btn" id="btn-guides-clear" type="button" title="Remove all guides">Clear guides</button></div>
-        <p class="sr-only" id="layout-help">Columns and rows laid over the canvas to count by. They are never part of the pixels; they are saved with the sprite and listed in the .json. A count of 0 leaves that side out. Guides are dragged out of the rulers.</p>
-      </section>
     </aside>
   </main>
 
@@ -504,7 +506,7 @@ dialog p { margin: 8px 0; max-width: 62ch; }
       <button class="mini" id="zoom-in" type="button" aria-label="Zoom in" title="Zoom in (+)">+</button>
       <button class="mini" id="zoom-fit" type="button" title="Fit the window (0)">Fit</button>
       <label class="check" for="grid" title="Show the pixel grid, from 6× zoom up"><input type="checkbox" id="grid" checked>Grid</label>
-      <label class="check" for="layout-on" title="Show the columns and rows of the Layout grid panel"><input type="checkbox" id="layout-on" checked>Layout</label>
+      <label class="check" for="layout-on" title="Show the layout grid: its columns and rows are set with the grid button left of the size"><input type="checkbox" id="layout-on" checked>Layout</label>
       <label class="check" for="guides-on" title="Show the guides; drag new ones out of the rulers"><input type="checkbox" id="guides-on" checked>Guides</label>
       <label class="check" for="rulers-on" title="Show the rulers above and left of the canvas"><input type="checkbox" id="rulers-on" checked>Rulers</label>
       <label class="check" for="os-y" title="Count y from the bottom row, as the OS does: y = 0 is the bottom"><input type="checkbox" id="os-y">OS y</label>
@@ -537,9 +539,9 @@ dialog p { margin: 8px 0; max-width: 62ch; }
   <p>Drag a stamp from the Stamps panel onto the canvas, or click it to put it in the middle. It floats on the selected layer like pasted pixels: drag it or nudge it with the arrow keys, then press <kbd>Enter</kbd> or click next to it. <kbd>Delete</kbd> throws it away. Stamps bring their own dark and lit pixels; where they are transparent, what lies below stays.</p>
   <p>To keep your own, select an area and press <b>Save selection</b> under Custom. Your stamps stay in this browser.</p>
   <h3>Layout grid</h3>
-  <p>The Layout grid panel lays columns and rows over the canvas to count by. For each you set how many, the gap between them and the margin outside them, in pixels; what doesn't divide evenly goes to the first ones, a pixel each. Thin red lines show their edges; they are never part of the pixels, and <b>Layout</b> at the bottom hides them. The status line names the column and row under the pointer. The grid is saved with the sprite and in its PNG, and the .json lists it.</p>
+  <p>The grid button left of the size folds out the layout grid: columns and rows laid over the canvas to count by. For each you set how many, the gap between them and the margin outside them, in pixels; what doesn't divide evenly goes to the first ones, a pixel each. Thin red lines show their edges; they are never part of the pixels, and <b>Layout</b> at the bottom hides them. The status line names the column and row under the pointer. The grid is saved with the sprite and in its PNG, and the .json lists it.</p>
   <h3>Guides and rulers</h3>
-  <p>Rulers run along the top and the left of the canvas; y counts as the status line does. Drag down out of the top ruler for a guide across, or right out of the left one for a guide down. A guide lies on the edge between two pixels and shows in cyan; while you drag it, the ruler and the status line show where it lands. Move it with the Move tool, and drag it off the canvas to remove it. <b>Clear guides</b> in the Layout grid panel removes them all. <b>Guides</b> and <b>Rulers</b> at the bottom hide them. Guides are saved like the layout grid, and the .json lists them.</p>
+  <p>Rulers run along the top and the left of the canvas; y counts as the status line does. Drag down out of the top ruler for a guide across, or right out of the left one for a guide down. A guide lies on the edge between two pixels and shows in cyan; while you drag it, the ruler and the status line show where it lands. Move it with the Move tool, and drag it off the canvas to remove it. <b>Guides</b> and <b>Rulers</b> at the bottom hide them. Guides are saved like the layout grid, and the .json lists them.</p>
   <h3>Keys</h3>
   <div class="keys">
     <span><kbd>V</kbd></span><span>Move the selected layers</span>
@@ -2266,29 +2268,31 @@ const Core = (() => {
   $("grid").addEventListener("change", e => { state.grid = e.target.checked; render(); save(); });
   $("os-y").addEventListener("change", e => { state.osY = e.target.checked; updatePos(); save(); });
 
-  // ---- Layout grid panel: the document's columns and rows. What is typed shows at once; leaving the field (or Enter,
-  // or its arrows) makes it one undo step. ----
+  // ---- Layout grid: the document's columns and rows, folded out of the grid button left of the size. What is typed
+  // shows at once; leaving the field (or Enter, or its arrows) makes it one undo step. ----
 
   const gridInputs = [...document.querySelectorAll(".layout-form input")];
   let gridBefore = null;                     // the document before the first keystroke of an edit: its undo step
-  function showGrid(typing = null) {         // the panel and the footer switch follow the document's layout grid
+  function showGrid(typing = null) {         // the fields and the footer's switches follow the document and the settings
     for (const el of gridInputs) if (el !== typing) el.value = String(state.layout[el.dataset.axis][el.dataset.key]);
     $("layout-on").checked = state.layoutOn;
     $("guides-on").checked = state.guidesOn;
     $("rulers-on").checked = state.rulersOn;
     stageWrap.classList.toggle("no-rulers", !state.rulersOn);
-    const n = state.guides.x.length + state.guides.y.length;
-    $("guides-count").textContent = n ? `${n} guide${n === 1 ? "" : "s"}` : state.rulersOn ? "No guides: drag one out of a ruler" : "No guides";
-    $("btn-guides-clear").disabled = !n;
-    const sizes = (name, size, a) => {
-      if (!a.count) return `no ${name}`;
-      const n = C.gridFields(size, a).map(([s, e]) => e - s + 1);
-      if (!n.length) return `the ${name} don't fit in ${size} px`;
-      return `${name} ${n.every(v => v === n[0]) ? `${n.length} × ${n[0]}` : n.join(", ")} px`;
-    };
-    const text = `${sizes("columns", state.w, state.layout.cols)} · ${sizes("rows", state.h, state.layout.rows)}`;
-    $("layout-sizes").textContent = text[0].toUpperCase() + text.slice(1);
   }
+  const layoutBtn = $("btn-layout"), layoutPop = $("layout-pop");
+  function foldLayout(open) {                // the layout grid's fields fold out below their button
+    layoutPop.hidden = !open;
+    layoutBtn.setAttribute("aria-expanded", String(open));
+  }
+  layoutBtn.addEventListener("click", () => foldLayout(layoutPop.hidden));
+  layoutPop.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    e.preventDefault();
+    foldLayout(false);
+    layoutBtn.focus();
+  });
+  document.addEventListener("pointerdown", e => { if (!layoutPop.hidden && !e.target.closest(".layout-menu")) foldLayout(false); });
   for (const el of gridInputs) {
     el.addEventListener("input", () => {
       const v = Number(el.value);
@@ -2308,7 +2312,6 @@ const Core = (() => {
   $("layout-on").addEventListener("change", e => { state.layoutOn = e.target.checked; render(); save(); });
   $("guides-on").addEventListener("change", e => { state.guidesOn = e.target.checked; hoverGuide = null; render(); save(); });
   $("rulers-on").addEventListener("change", e => { state.rulersOn = e.target.checked; showGrid(); render(); save(); });
-  $("btn-guides-clear").addEventListener("click", () => { change(() => { state.guides = C.loadGuides(null); }); showGrid(); render(); });
 
   // ---- Guides: pulled out of a ruler (the top one gives guides across, the left one guides down), moved with the
   // Move tool, gone when let go off the canvas. They lie on pixel edges. ----
@@ -3210,7 +3213,7 @@ const Core = (() => {
   // as tabs; a tab dragged out gets its own place again. The layout stays in this browser. ----
 
   const side = document.querySelector("aside.side");
-  const PANELS = ["colors", "layers", "stamps", "file", "preview", "layout"];
+  const PANELS = ["colors", "layers", "stamps", "file", "preview"];
   const PANEL_STORE = "model-sprite-editor:panels";
   const panelEl = Object.fromEntries(PANELS.map(k => [k, side.querySelector(`[data-panel="${k}"]`)]));
   const panelTitle = k => panelEl[k].querySelector("h2").textContent;
