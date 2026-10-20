@@ -522,7 +522,7 @@ dialog p { margin: 8px 0; max-width: 62ch; }
         <div class="frame-settings" id="frame-settings" hidden>
           <div class="frame-row">
             <span class="label" id="drive-label">Drive</span>
-            <div class="seg" id="seg-drive" role="group" aria-labelledby="drive-label"><button type="button" data-v="time" title="The frames follow each other in time">Time</button><button type="button" data-v="value" title="A value from 0 to 127 picks the frame, as a knob's picture on the device">Value</button></div>
+            <div class="dd" id="dd-drive"><button type="button" class="dd-btn" aria-haspopup="listbox" aria-expanded="false"><span class="dd-value"></span><svg class="caret" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3"/></svg></button><div class="dd-list" role="listbox" aria-labelledby="drive-label"></div></div>
             <label class="check" for="onion" title="Show the frame before this one faintly, to line things up"><input type="checkbox" id="onion">Onion skin</label>
           </div>
           <div class="frame-row" data-drive="time">
@@ -538,7 +538,7 @@ dialog p { margin: 8px 0; max-width: 62ch; }
             <span class="frame-note" id="anim-note"></span>
           </div>
         </div>
-        <p class="sr-only" id="frames-help">An animation's frames, each with layers of its own. Click a frame to edit it, drag it to reorder. Driven by time each frame shows for its milliseconds; driven by a value, a value from 0 to 127 picks the frame. In the strip, the arrow keys select, Delete deletes.</p>
+        <p class="sr-only" id="frames-help">An animation's frames, each with layers of its own. Click a frame to edit it, drag it to reorder. Driven by a value, the default, a value from 0 to 127 picks the frame; driven by time each frame shows for its milliseconds, which is only for things like the start animation. In the strip, the arrow keys select, Delete deletes.</p>
       </section>
       <section class="panel actions" data-panel="file" aria-labelledby="h-file">
         <h2 id="h-file">File</h2>
@@ -612,7 +612,7 @@ dialog p { margin: 8px 0; max-width: 62ch; }
   <h3>Slices</h3>
   <p>A slice is a box over the screen that comes out as a sprite of its own: draw a whole screen in place, then mark the icons in it. The <b>Slice</b> tool drags one out; drag a slice to move it, its corners to resize it, and <kbd>Delete</kbd> removes it. Its edges snap to the canvas's, the guides, the layout grid and the other slices. <b>From selection</b> and <b>From layer</b> in the Slices panel make one around the selection or around what the selected layer holds; double-click a name there to rename it. Slices show in green and are never part of the pixels; <b>Slices</b> at the bottom hides them. The .bin button then saves each slice's .bin and PNG beside the whole screen's, and the .json lists their boxes in the OS's coordinates. Slices are saved with the sprite and in its PNG.</p>
   <h3>Frames</h3>
-  <p>An animation is a list of frames, each with layers of its own; the Frames panel shows them in a strip. <b>Add</b> puts an empty frame after the current one, <b>Duplicate</b> a copy of it (its layers keep their names, so the selection carries over), <b>Delete</b> removes it; drag a frame to reorder, <kbd>,</kbd> and <kbd>.</kbd> step through them. <b>Onion skin</b> shows the frame before faintly. The <b>Drive</b> is what moves the animation: with <b>Time</b> each frame has its milliseconds and <b>Play</b> runs them in the On screen panel; with <b>Value</b> a value from 0 to 127 picks the frame, the way a knob's picture changes on the device: the frames are spread evenly over <b>From</b> to <b>To</b> (0 to 127 by default), and the slider's value chooses the frame to edit. With as many frames as values, each value has its own frame.</p>
+  <p>An animation is a list of frames, each with layers of its own; the Frames panel shows them in a strip. <b>Add</b> puts an empty frame after the current one, <b>Duplicate</b> a copy of it (its layers keep their names, so the selection carries over), <b>Delete</b> removes it; drag a frame to reorder, <kbd>,</kbd> and <kbd>.</kbd> step through them. <b>Onion skin</b> shows the frame before faintly. The <b>Drive</b> is what moves the animation. With <b>Value</b>, the default, a value from 0 to 127 picks the frame, the way a knob's picture changes on the device: the frames are spread evenly over <b>From</b> to <b>To</b> (0 to 127 by default), and the slider's value chooses the frame to edit. With as many frames as values, each value has its own frame. With <b>Time</b> each frame has its milliseconds and <b>Play</b> runs them in the On screen panel; Time is meant only for things like the start animation, since the device's own pictures are driven by values.</p>
   <p>Files: the PNGs hold the frames side by side and open again as the animation; the .bin button's ZIP holds one .bin per frame (included one after the other they form one table), the strip PNG, each slice's bins and strip, and in the .json an <code>animation</code> block with the drive, the ms (and UI ticks) per frame or the value map; <b>GIF</b> saves an animated GIF, 4× bigger, for sharing.</p>
   <h3>Keys</h3>
   <div class="keys">
@@ -1290,11 +1290,11 @@ const Core = (() => {
     return Math.round((Math.max(min, Math.min(max, v)) - min) * (n - 1) / (max - min));
   }
   const valueMap = (n, min, max) => Array.from({ length: 128 }, (_, v) => valueFrame(v, n, min, max));
-  function loadAnim(a) {                     // the stored animation settings, checked: the drive and the value range
+  function loadAnim(a) {                     // the stored animation settings, checked: the drive (value unless time) and the value range
     const ok = v => Number.isInteger(v) && v >= 0 && v <= 127;
     let min = a && ok(a.min) ? a.min : 0, max = a && ok(a.max) ? a.max : 127;
     if (max <= min) { min = 0; max = 127; }
-    return { drive: a && a.drive === "value" ? "value" : "time", min, max };
+    return { drive: a && a.drive === "time" ? "time" : "value", min, max };   // Value is the default: that is how the device's pictures move
   }
   const sameAnim = (a, b) => a.drive === b.drive && a.min === b.min && a.max === b.max;
   function sameFrames(a, b) {                // frames are shared between undo steps unless edited, so most compare by identity
@@ -2861,6 +2861,7 @@ const Core = (() => {
       item.setAttribute("role", "option");
       if (o.glyph) item.append(Object.assign(document.createElement("span"), { className: "dd-glyph", textContent: o.glyph }));
       item.append(Object.assign(document.createElement("span"), { textContent: o.label }));
+      if (o.title) item.title = o.title;
       list.append(item);
     }
     btn.addEventListener("click", () => (root.classList.contains("open") ? closeDropdown(dd) : openDropdown(dd)));
@@ -2907,6 +2908,7 @@ const Core = (() => {
     dd.value = o.v;
     dd.btn.querySelector(".dd-value").textContent = o.short;
     dd.btn.setAttribute("aria-label", `${$(dd.labelId).textContent}: ${o.label}`);
+    dd.btn.title = o.title || "";
     dd.btn.disabled = disabled;
     for (const item of dd.list.children) item.setAttribute("aria-selected", String(item.dataset.v === o.v));
     if (disabled) closeDropdown(dd);
@@ -2920,6 +2922,10 @@ const Core = (() => {
     .map(([v, glyph, label]) => ({ v, short: glyph, glyph, label })), v => { state.dir = v; });
   dropdown("dd-font", "font-label", Object.values(C.FONTS).map(f => ({ v: f.id, short: f.name, label: f.name })),
     v => { state.font = v; applyText("font", v); });
+  dropdown("dd-drive", "drive-label", [                      // what moves an animation; Value is the default, as on the device
+    { v: "value", short: "Value", label: "Value", title: "A value from 0 to 127 picks the frame, as a knob's picture on the device." },
+    { v: "time", short: "Time", label: "Time", title: "The frames follow each other in time, each for its milliseconds. Only for things like the start animation: the device's own pictures are driven by values." },
+  ], v => setDrive(v));
   $("tools").addEventListener("click", e => { const b = e.target.closest(".tool"); if (b) setTool(b.dataset.tool); });
 
   // Tool tips: name, key and how the tool works, next to the tool under the pointer or the keyboard focus.
@@ -3671,7 +3677,7 @@ const Core = (() => {
     $("btn-frame-add").disabled = $("btn-frame-dup").disabled = n >= C.MAX_FRAMES;
     const settings = $("frame-settings");
     settings.hidden = n < 2;
-    for (const b of $("seg-drive").children) b.setAttribute("aria-pressed", String(b.dataset.v === state.anim.drive));
+    setDropdown("dd-drive", state.anim.drive);
     for (const el of settings.querySelectorAll("[data-drive]")) el.hidden = el.dataset.drive !== state.anim.drive;
     if (document.activeElement !== $("frame-ms")) $("frame-ms").value = String(curFrame().ms);
     if (document.activeElement !== $("anim-min")) $("anim-min").value = String(state.anim.min);
@@ -3736,7 +3742,6 @@ const Core = (() => {
   $("btn-frame-del").addEventListener("click", deleteFrame);
   $("btn-frame-play").addEventListener("click", () => (playing ? stopPlay() : startPlay()));
   $("onion").addEventListener("change", e => { state.onion = e.target.checked; render(); save(); });
-  $("seg-drive").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setDrive(b.dataset.v); });
   $("frame-ms").addEventListener("input", () => { if ($("frame-ms").value !== "") setMs(Number($("frame-ms").value), false); });
   $("frame-ms").addEventListener("change", () => setMs($("frame-ms").value === "" ? NaN : Number($("frame-ms").value), true));   // emptied: as it was
   for (const id of ["anim-min", "anim-max"]) $(id).addEventListener("change", () => setRange(Number($("anim-min").value), Number($("anim-max").value)));

@@ -43,9 +43,10 @@ single HTML file that runs in the browser, with no build step and no dependencie
   PNG; Slices at the bottom hides them.
 - **Frames:** an animation is a list of frames, each with layers of its own, shown in a strip in the Frames panel:
   Add, Duplicate (the copy's layers keep their names), Delete, drag to reorder, `,` and `.` to step through, Onion skin
-  to see the frame before. The drive is what moves it: with Time each frame has its milliseconds and Play runs them in
-  the On screen panel; with Value a value from 0 to 127 picks the frame, the way a knob's picture changes on the
-  Model:Cycles, spread evenly over From to To, and the slider's value chooses the frame to edit.
+  to see the frame before. The drive is what moves it: with Value, the default, a value from 0 to 127 picks the frame,
+  the way a knob's picture changes on the Model:Cycles, spread evenly over From to To, and the slider's value chooses
+  the frame to edit; with Time each frame has its milliseconds and Play runs them in the On screen panel. Time is meant
+  only for things like the start animation, since the device's own pictures are driven by values.
 - What you draw is what the device shows: light pixels are lit, dark ones stay off. The canvas under all layers is
   light, a lit screen; for a dark screen like the OS's own, fill a layer with Dark. The left mouse button starts out
   with Dark, the right one with Light. Any color or pattern can go on either button; <kbd>X</kbd> swaps them. Moved

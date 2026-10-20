@@ -565,7 +565,8 @@ async function main() {
       C.valueFrame(127, 49, 40, 88) === 48 && C.valueFrame(5, 1) === 0 && C.valueFrame(5, 4, 10, 10) === 0);
     const m = C.valueMap(128, 0, 127);
     check("valueMap: 128 entries; with 128 frames each value has its own", m.length === 128 && m.every((k, v) => k === v) && C.valueMap(2, 0, 127)[63] === 0 && C.valueMap(2, 0, 127)[64] === 1);
-    check("loadAnim: time by default, a value range kept, one that isn't a range falls back", JSON.stringify(C.loadAnim(null)) === '{"drive":"time","min":0,"max":127}' &&
+    check("loadAnim: value by default, time kept, a value range kept, one that isn't a range falls back", JSON.stringify(C.loadAnim(null)) === '{"drive":"value","min":0,"max":127}' &&
+      C.loadAnim({ drive: "time" }).drive === "time" && C.loadAnim({ drive: "x" }).drive === "value" &&
       JSON.stringify(C.loadAnim({ drive: "value", min: 40, max: 88 })) === '{"drive":"value","min":40,"max":88}' &&
       JSON.stringify(C.loadAnim({ drive: "value", min: 90, max: 88 })) === '{"drive":"value","min":0,"max":127}' && C.loadAnim({ drive: "x", min: -1, max: 300 }).max === 127);
     check("clampMs and uiTicks", C.clampMs(5) === 10 && C.clampMs(100000) === 10000 && C.clampMs("x") === 100 && C.clampMs(250) === 250 &&
