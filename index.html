@@ -3600,6 +3600,7 @@ const Core = (() => {
     if (!state.active) selectFirstLayer();
     renderLayers();
     renderFrames();
+    showFrameTile();
     render();
     save();
   }
@@ -3619,6 +3620,7 @@ const Core = (() => {
     if (!state.active) selectFirstLayer();
     renderLayers();
     renderFrames();
+    showFrameTile();
     render();
   }
   function moveFrame(from, to) {             // the frame at from goes before the one at to (to = the count: to the end)
@@ -3630,6 +3632,7 @@ const Core = (() => {
       state.frame = at;
     });
     renderFrames();
+    showFrameTile();
     render();
   }
   function setDrive(drive) {
@@ -3674,6 +3677,13 @@ const Core = (() => {
     $("btn-frame-play").setAttribute("aria-pressed", "false");
     render();
   }
+  function showFrameTile() {                 // the frame's tile into the strip's view: the strip scrolls sideways, nothing else moves
+    const t = frameStrip.children[state.frame];
+    if (!t) return;
+    const s = frameStrip.getBoundingClientRect(), r = t.getBoundingClientRect();
+    if (r.left < s.left) frameStrip.scrollLeft += r.left - s.left - 3;
+    else if (r.right > s.right) frameStrip.scrollLeft += r.right - s.right + 3;
+  }
   function drawFrameTile(b) {                // the frame being edited, as it is right now, in its tile
     const tile = frameStrip.children[state.frame], cv = tile && tile.querySelector("canvas");
     if (cv) drawPic(cv, b, 64, 32, false);
@@ -3695,8 +3705,6 @@ const Core = (() => {
       tile.append(cv, num);
       return tile;
     }));
-    const cur = frameStrip.children[state.frame];
-    if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: "nearest", inline: "nearest" });
     $("btn-frame-del").disabled = n < 2;
     $("btn-frame-add").disabled = $("btn-frame-dup").disabled = n >= C.MAX_FRAMES;
     const settings = $("frame-settings");
@@ -4489,6 +4497,7 @@ const Core = (() => {
   renderLayers();
   renderSlices();
   renderFrames();
+  showFrameTile();
   loadCustom();
   renderStamps();
   showGrid();
