@@ -47,6 +47,46 @@ function pngPixels(bytes) {                  // decodes our 1-bit gray PNG with 
   return { w, h, depth: ihdr[8], type: ihdr[9], px, chunks };
 }
 
+function gifFrames(bytes) {                 // the frames {w, h, delay, px} of a GIF with a global 2-color table, decoded as giflib does
+  let o = 13 + (bytes[10] & 0x80 ? 3 * (2 << (bytes[10] & 7)) : 0), delay = 0;
+  const out = [];
+  while (o < bytes.length && bytes[o] !== 0x3b) {
+    if (bytes[o] === 0x21) {
+      if (bytes[o + 1] === 0xf9) delay = bytes[o + 4] | (bytes[o + 5] << 8);
+      o += 2;
+      while (bytes[o]) o += bytes[o] + 1;
+      o++;
+      continue;
+    }
+    if (bytes[o] !== 0x2c) throw new Error(`unexpected block ${bytes[o]}`);
+    const w = bytes[o + 5] | (bytes[o + 6] << 8), h = bytes[o + 7] | (bytes[o + 8] << 8), packed = bytes[o + 9];
+    o += 10 + (packed & 0x80 ? 3 * (2 << (packed & 7)) : 0);
+    const min = bytes[o++], data = [];
+    while (bytes[o]) { data.push(...bytes.subarray(o + 1, o + 1 + bytes[o])); o += bytes[o] + 1; }
+    o++;
+    const clear = 1 << min, eoi = clear + 1, px = [];
+    let size, next, dict, prev, bits = 0, nbits = 0, pos = 0;
+    const reset = () => { dict = Array.from({ length: clear }, (_, i) => [i]); size = min + 1; next = eoi + 1; prev = null; };
+    reset();
+    for (;;) {
+      while (nbits < size && pos < data.length) { bits |= data[pos++] << nbits; nbits += 8; }
+      if (nbits < size) break;
+      const code = bits & ((1 << size) - 1);
+      bits >>>= size;
+      nbits -= size;
+      if (code === clear) { reset(); continue; }
+      if (code === eoi) break;
+      const entry = code < next && dict[code] ? dict[code] : code === next && prev ? [...prev, prev[0]] : null;
+      if (!entry) throw new Error(`bad code ${code}`);
+      px.push(...entry);
+      if (prev && next < 4096) { dict[next++] = [...prev, entry[0]]; if (next === (1 << size) && size < 12) size++; }   // the codes widen as soon as the table reaches their size
+      prev = entry;
+    }
+    out.push({ w, h, delay, px });
+  }
+  return out;
+}
+
 async function main() {
   // ---- .bin layout ----
   {
@@ -516,6 +556,50 @@ async function main() {
     check("slices: the PNG's text chunk keeps them", JSON.stringify(C.readPngMeta(png).slices) === JSON.stringify(C.saveSlices(sl)));
     check("sliceHolds: a box inside the slice, edges included", C.sliceHolds(sl[0], { x: 4, y: 8, w: 40, h: 20 }) &&
       !C.sliceHolds(sl[0], { x: 4, y: 8, w: 41, h: 20 }) && !C.sliceHolds(sl[0], null));
+  }
+
+  // ---- Frames, the value drive and the GIF ----
+  {
+    check("valueFrame: spread evenly over the range, the ends included, clamped outside it", [0, 63, 64, 127].map(v => C.valueFrame(v, 3)).join() === "0,1,1,2" &&
+      C.valueFrame(40, 49, 40, 88) === 0 && C.valueFrame(88, 49, 40, 88) === 48 && C.valueFrame(64, 49, 40, 88) === 24 && C.valueFrame(0, 49, 40, 88) === 0 &&
+      C.valueFrame(127, 49, 40, 88) === 48 && C.valueFrame(5, 1) === 0 && C.valueFrame(5, 4, 10, 10) === 0);
+    const m = C.valueMap(128, 0, 127);
+    check("valueMap: 128 entries; with 128 frames each value has its own", m.length === 128 && m.every((k, v) => k === v) && C.valueMap(2, 0, 127)[63] === 0 && C.valueMap(2, 0, 127)[64] === 1);
+    check("loadAnim: time by default, a value range kept, one that isn't a range falls back", JSON.stringify(C.loadAnim(null)) === '{"drive":"time","min":0,"max":127}' &&
+      JSON.stringify(C.loadAnim({ drive: "value", min: 40, max: 88 })) === '{"drive":"value","min":40,"max":88}' &&
+      JSON.stringify(C.loadAnim({ drive: "value", min: 90, max: 88 })) === '{"drive":"value","min":0,"max":127}' && C.loadAnim({ drive: "x", min: -1, max: 300 }).max === 127);
+    check("clampMs and uiTicks", C.clampMs(5) === 10 && C.clampMs(100000) === 10000 && C.clampMs("x") === 100 && C.clampMs(250) === 250 &&
+      C.uiTicks(100) === 3 && C.uiTicks(10) === 1 && C.uiTicks(1000) === 30 && C.MAX_FRAMES === 128);
+    const a = C.frameOf([C.layer("A", 4, 2)]), b = C.frameOf([C.layer("B", 4, 2)], 50), shared = [a, b], edited = [a, { ...b, items: C.cloneItems(b.items) }];
+    check("sameFrames: shared frames by identity, an edited one by its layers; a changed ms, pixel or count tells", C.sameFrames(shared, edited) &&
+      !C.sameFrames(shared, [a, { ...b, ms: 60 }]) && !C.sameFrames(shared, [a]) && (edited[1].items[0].px[0] = 1, !C.sameFrames(shared, edited)));
+    const f1 = fromArt(["#..", ".#."]), f2 = fromArt(["..#", "#.#"]), st = C.strip([f1, f2]);
+    check("strip puts the frames side by side; unstrip takes them apart", st.w === 6 && st.h === 2 && ascii(st) === "#....#\n.#.#.#" &&
+      C.unstrip(st, 2).map(ascii).join("|") === "#..\n.#.|..#\n#.#", ascii(st));
+    const gif = C.encodeGif([f1, f2], [100, 250], 2), frames = gifFrames(gif);
+    const scaled = (b, k) => art(b.w * k, b.h * k, (x, y) => b.px[Math.floor(y / k) * b.w + Math.floor(x / k)]);
+    check("GIF: GIF89a, the size scaled, 2 colors, looping, the frames with their delays in hundredths of a second, the pixels back",
+      Buffer.from(gif.subarray(0, 6)).toString() === "GIF89a" && gif[6] === 6 && gif[8] === 4 && gif[10] === 0x80 &&
+      gif[19] === 0x21 && gif[20] === 0xff && gif[21] === 11 && Buffer.from(gif.subarray(22, 33)).toString() === "NETSCAPE2.0" && gif[gif.length - 1] === 0x3b && frames.length === 2 &&
+      frames.map(f => f.delay).join() === "10,25" && frames.every(f => f.w === 6 && f.h === 4) &&
+      frames.map(f => art(6, 4, (x, y) => f.px[y * 6 + x])).join("|") === `${scaled(f1, 2)}|${scaled(f2, 2)}`, JSON.stringify(frames.map(f => [f.w, f.h, f.delay, f.px.length])));
+    const big = random(128, 64, 9), bg = gifFrames(C.encodeGif([big], [20], 4))[0];   // the table fills: a clear in the stream
+    check("GIF: a big noisy frame comes back pixel for pixel, with a delay of 2 hundredths", bg.w === 512 && bg.h === 256 && bg.delay === 2 && bg.px.length === 512 * 256 &&
+      bg.px.every((v, i) => v === big.px[(Math.floor(i / 512) >> 2) * 128 + ((i % 512) >> 2)]));
+    const W = 8, H = 4, t1 = C.textItem("T", 1, 3, "A");
+    const fr = [{ ms: 100, items: [t1], files: { bin: "x_f01_8x4.bin" } }, { ms: 250, items: [C.layer("L", W, H)], files: { bin: "x_f02_8x4.bin" } }];
+    const dt = C.describe([t1], W, H, { animation: { drive: "time", min: 0, max: 127, frames: fr, strip: { png: "x_8x4.png", frameWidth: 8 } } });
+    check("describe: driven by time: loop, per frame ms, uiTicks, ticks10ms, files and texts; none for one frame", dt.animation.drive === "time" && dt.animation.loop === true &&
+      JSON.stringify(dt.animation.frames.map(f => [f.index, f.ms, f.uiTicks, f.ticks10ms, f.files.bin, f.texts ? f.texts.length : 0])) === '[[0,100,3,10,"x_f01_8x4.bin",1],[1,250,8,25,"x_f02_8x4.bin",0]]' &&
+      dt.animation.strip.png === "x_8x4.png" && !("range" in dt.animation) && !("animation" in C.describe([], W, H, { animation: { frames: [fr[0]] } })), JSON.stringify(dt.animation));
+    const dv = C.describe([], W, H, { animation: { drive: "value", min: 40, max: 88, frames: fr } });
+    check("describe: driven by a value: the range and the map, no ms and no loop", dv.animation.drive === "value" && JSON.stringify(dv.animation.range) === "[40,88]" &&
+      dv.animation.map.length === 128 && dv.animation.map[40] === 0 && dv.animation.map[64] === 1 && dv.animation.map[88] === 1 && !("ms" in dv.animation.frames[0]) && !("loop" in dv.animation));
+    const png = await C.encodePng(st, 1, { w: 3, h: 2, frames: [{ ms: 100 }, { ms: 250, layers: [] }], anim: { drive: "value", min: 1, max: 9 } }), pm = C.readPngMeta(png);
+    check("PNG: a strip's chunk says one frame's size, the frames and the drive; the picture is the strip", pm.w === 3 && pm.h === 2 && pm.frames.length === 2 && pm.frames[1].ms === 250 &&
+      pm.anim.drive === "value" && pngPixels(png).w === 6 && !("frames" in C.readPngMeta(await C.encodePng(st, 1, { w: 3, h: 2, frames: [] }))));
+    check("sliceSlugs: names as file names, each once; sliceStems adds the base and the size", C.sliceSlugs([C.slice("a b", 0, 0, 1, 1), C.slice("a-b", 0, 0, 2, 2)]).map(e => e[1]).join() === "a-b,a-b-2" &&
+      C.sliceStems([C.slice("a b", 0, 0, 1, 1)], "x")[0][1] === "x_a-b_1x1");
   }
 
   // ---- Stamps ----

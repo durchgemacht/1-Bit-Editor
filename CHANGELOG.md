@@ -20,6 +20,13 @@
   The .bin button's ZIP holds each slice's .bin and PNG beside the whole screen's, and the .json lists their boxes in
   the OS's coordinates; a text inside a slice names it. Slices are saved with the sprite and in its PNG, and
   **Slices** at the bottom hides them.
+- **Frames:** an animation is a list of frames, each with layers of its own, in a strip in the Frames panel: Add,
+  Duplicate, Delete, drag to reorder, `,` and `.` to step through, Onion skin. The drive is Time (each frame its
+  milliseconds, Play runs them in the On screen panel) or Value (a value from 0 to 127 picks the frame, as a knob's
+  picture changes on the Model:Cycles, spread over From to To; the slider chooses the frame to edit). The PNGs hold
+  the frames side by side and open again as the animation; the .bin button's ZIP holds one .bin per frame, the strip
+  PNG, each slice's bins and strip, and an `animation` block in the .json (ms with UI ticks, or the value map); **GIF**
+  saves an animated GIF, 4× bigger.
 
 ## 0.1 (2026-10-17)
 

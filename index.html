@@ -251,6 +251,21 @@ body.arranging, body.arranging * { cursor: grabbing !important; user-select: non
 .sr-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .sr-size { flex: none; font: 11px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
 .sr .lr-input { height: 22px; }
+.frame-strip { display: flex; gap: 6px; overflow-x: auto; padding: 3px; margin: 0 -3px; }
+.fr { flex: none; display: grid; gap: 3px; justify-items: center; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--key); user-select: none; -webkit-user-select: none; touch-action: pan-x; }
+.fr[aria-selected="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.fr:focus-visible { outline-offset: 1px; }
+.fr canvas { display: block; background: var(--oled-off); }
+.fr-n { font: 10px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.fr.dragged { opacity: 0.4; }
+.fr.drop-before { box-shadow: -3px 0 0 0 var(--accent); }
+.fr.drop-after { box-shadow: 3px 0 0 0 var(--accent); }
+.frame-strip.dragging, .frame-strip.dragging .fr { cursor: grabbing; }
+.frame-settings { display: grid; gap: 6px; margin-top: 8px; }
+.frame-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.frame-row .field input { height: 28px; width: 5.5rem; }
+.frame-row input[type="range"] { flex: 1 1 5rem; min-width: 4rem; margin: 0; }
+.frame-note { font: 11px/1.3 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
 .layer-list.dragging, .layer-list.dragging .lr { cursor: grabbing; }
 .lr.dragged { opacity: 0.4; }
 .lr.drop-into { box-shadow: inset 0 0 0 2px var(--accent); }
@@ -259,8 +274,8 @@ body.arranging, body.arranging * { cursor: grabbing !important; user-select: non
 .lr.drop-after::after { bottom: -1px; }
 .layer-list.drop-end::after { content: ""; display: block; height: 2px; margin: 1px 4px 0 30px; border-radius: 1px; background: var(--accent); }
 .lr-ghost { position: fixed; left: 0; top: 0; z-index: 45; padding: 5px 10px; border-radius: 6px; background: var(--fg); color: var(--bg); font-size: 12px; white-space: nowrap; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25); pointer-events: none; }
-.layer-actions, .slice-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
-.layer-actions .btn, .slice-actions .btn { flex: 1 1 auto; justify-content: center; height: 28px; padding: 0 6px; font-size: 12px; }
+.layer-actions, .slice-actions, .frame-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.layer-actions .btn, .slice-actions .btn, .frame-actions .btn { flex: 1 1 auto; justify-content: center; height: 28px; padding: 0 6px; font-size: 12px; }
 
 /* Stamps panel: tabs, then the stamps of that tab as tiles you drag onto the canvas */
 .stamp-tabs { display: flex; margin-bottom: 8px; }
@@ -496,6 +511,35 @@ dialog p { margin: 8px 0; max-width: 62ch; }
         </div>
         <p class="sr-only" id="slices-help">A slice is a box over the screen that the .bin button exports as a sprite of its own, with its place in the .json. The Slice tool draws them; here they are listed with their sizes. Click one to select it, double-click to rename it. In the list, the arrow keys select, Enter renames and Delete deletes.</p>
       </section>
+      <section class="panel frames" data-panel="frames" aria-labelledby="h-frames">
+        <h2 id="h-frames">Frames</h2>
+        <div class="frame-strip" id="frame-strip" role="listbox" aria-labelledby="h-frames" aria-describedby="frames-help"></div>
+        <div class="frame-actions">
+          <button class="btn" id="btn-frame-add" type="button" title="Add an empty frame after this one">Add</button>
+          <button class="btn" id="btn-frame-dup" type="button" title="Add a copy of this frame after it">Duplicate</button>
+          <button class="btn" id="btn-frame-del" type="button" title="Delete this frame">Delete</button>
+        </div>
+        <div class="frame-settings" id="frame-settings" hidden>
+          <div class="frame-row">
+            <span class="label" id="drive-label">Drive</span>
+            <div class="seg" id="seg-drive" role="group" aria-labelledby="drive-label"><button type="button" data-v="time" title="The frames follow each other in time">Time</button><button type="button" data-v="value" title="A value from 0 to 127 picks the frame, as a knob's picture on the device">Value</button></div>
+            <label class="check" for="onion" title="Show the frame before this one faintly, to line things up"><input type="checkbox" id="onion">Onion skin</label>
+          </div>
+          <div class="frame-row" data-drive="time">
+            <label class="field" for="frame-ms"><span>ms</span><input id="frame-ms" type="number" min="10" max="10000" step="10" inputmode="numeric" aria-label="How long this frame shows, in milliseconds"></label>
+            <button class="btn" id="btn-frame-play" type="button" aria-pressed="false" title="Play the frames in the On screen panel">Play</button>
+          </div>
+          <div class="frame-row" data-drive="value">
+            <label class="field" for="anim-min"><span>From</span><input id="anim-min" type="number" min="0" max="127" inputmode="numeric" aria-label="The value the first frame starts at"></label>
+            <label class="field" for="anim-max"><span>To</span><input id="anim-max" type="number" min="0" max="127" inputmode="numeric" aria-label="The value the last frame ends at"></label>
+          </div>
+          <div class="frame-row" data-drive="value">
+            <input type="range" id="anim-value" min="0" max="127" step="1" aria-label="The value, which picks the frame">
+            <span class="frame-note" id="anim-note"></span>
+          </div>
+        </div>
+        <p class="sr-only" id="frames-help">An animation's frames, each with layers of its own. Click a frame to edit it, drag it to reorder. Driven by time each frame shows for its milliseconds; driven by a value, a value from 0 to 127 picks the frame. In the strip, the arrow keys select, Delete deletes.</p>
+      </section>
       <section class="panel actions" data-panel="file" aria-labelledby="h-file">
         <h2 id="h-file">File</h2>
         <div class="file-actions">
@@ -508,6 +552,7 @@ dialog p { margin: 8px 0; max-width: 62ch; }
             <button class="btn" id="btn-save" type="button" title="Save the sprite as a 1-bit PNG you can open again">Save PNG</button>
             <button class="btn" id="btn-share" type="button" title="Save an 8× bigger PNG for sharing">PNG ×8</button>
             <button class="btn" id="btn-bin" type="button" title="Export the pixels in the OS's sprite layout">.bin</button>
+            <button class="btn" id="btn-gif" type="button" title="Save the frames as an animated GIF, 4× bigger" hidden>GIF</button>
           </div>
         </div>
       </section>
@@ -566,6 +611,9 @@ dialog p { margin: 8px 0; max-width: 62ch; }
   <p>Rulers run along the top and the left of the canvas; y counts as the status line does. Drag down out of the top ruler for a guide across, or right out of the left one for a guide down. A guide lies on the edge between two pixels and shows in cyan; while you drag it, the ruler and the status line show where it lands. Move it with the Move tool, and drag it off the canvas to remove it. <b>Guides</b> and <b>Rulers</b> at the bottom hide them. Guides are saved like the layout grid, and the .json lists them.</p>
   <h3>Slices</h3>
   <p>A slice is a box over the screen that comes out as a sprite of its own: draw a whole screen in place, then mark the icons in it. The <b>Slice</b> tool drags one out; drag a slice to move it, its corners to resize it, and <kbd>Delete</kbd> removes it. Its edges snap to the canvas's, the guides, the layout grid and the other slices. <b>From selection</b> and <b>From layer</b> in the Slices panel make one around the selection or around what the selected layer holds; double-click a name there to rename it. Slices show in green and are never part of the pixels; <b>Slices</b> at the bottom hides them. The .bin button then saves each slice's .bin and PNG beside the whole screen's, and the .json lists their boxes in the OS's coordinates. Slices are saved with the sprite and in its PNG.</p>
+  <h3>Frames</h3>
+  <p>An animation is a list of frames, each with layers of its own; the Frames panel shows them in a strip. <b>Add</b> puts an empty frame after the current one, <b>Duplicate</b> a copy of it (its layers keep their names, so the selection carries over), <b>Delete</b> removes it; drag a frame to reorder, <kbd>,</kbd> and <kbd>.</kbd> step through them. <b>Onion skin</b> shows the frame before faintly. The <b>Drive</b> is what moves the animation: with <b>Time</b> each frame has its milliseconds and <b>Play</b> runs them in the On screen panel; with <b>Value</b> a value from 0 to 127 picks the frame, the way a knob's picture changes on the device: the frames are spread evenly over <b>From</b> to <b>To</b> (0 to 127 by default), and the slider's value chooses the frame to edit. With as many frames as values, each value has its own frame.</p>
+  <p>Files: the PNGs hold the frames side by side and open again as the animation; the .bin button's ZIP holds one .bin per frame (included one after the other they form one table), the strip PNG, each slice's bins and strip, and in the .json an <code>animation</code> block with the drive, the ms (and UI ticks) per frame or the value map; <b>GIF</b> saves an animated GIF, 4× bigger, for sharing.</p>
   <h3>Keys</h3>
   <div class="keys">
     <span><kbd>V</kbd></span><span>Move the selected layers</span>
@@ -584,12 +632,13 @@ dialog p { margin: 8px 0; max-width: 62ch; }
     <span><kbd class="mod">⌘</kbd> <kbd>S</kbd> · <kbd class="mod">⌘</kbd> <kbd>O</kbd></span><span>Save PNG, open a file</span>
     <span><kbd>Shift</kbd> <kbd>R</kbd> · <kbd>Shift</kbd> <kbd>G</kbd></span><span>Show or hide the rulers · the layout grid</span>
     <span><kbd class="mod">⌘</kbd> <kbd>'</kbd> · <kbd class="mod">⌘</kbd> <kbd>;</kbd></span><span>Show or hide the pixel grid · the guides (on a German keyboard <kbd>Ä</kbd> and <kbd>Ö</kbd>)</span>
+    <span><kbd>,</kbd> <kbd>.</kbd></span><span>The frame before, the frame after</span>
     <span><kbd>↑</kbd> <kbd>↓</kbd> · <kbd>Enter</kbd> · <kbd>Delete</kbd></span><span>In the layer list or the slice list: the one above or below · rename · delete</span>
   </div>
   <h3>Panels</h3>
   <p>Drag a panel by its title to move it. Drop it on the middle of another panel to share that place as tabs, and drag a tab out to give it its own place again. The layout stays in this browser. <button class="btn" id="btn-panels-reset" type="button">Reset panels</button></p>
   <h3>Files</h3>
-  <p><b>Save PNG</b> writes the working file: 1 bit, as the device shows it (white = light = lit), with the layers inside. Open it again to keep drawing, layers and all; other programs just see the picture. <b>PNG ×8</b> is a bigger copy for sharing; it opens again at its real size.</p>
+  <p><b>Save PNG</b> writes the working file: 1 bit, as the device shows it (white = light = lit), with the layers inside. Open it again to keep drawing, layers and all; other programs just see the picture. <b>PNG ×8</b> is a bigger copy for sharing; it opens again at its real size. An animation's frames lie side by side in it.</p>
   <p><b>Open</b> takes a PNG, a .bin, a .json or the ZIP the .bin button saves; pick or drop several at once. A .bin holds no texts, so the editor asks for its .json, which brings them back as text layers. A .json on its own adds its texts to the canvas, if the size fits.</p>
   <p>The <b>.bin</b> button saves a .zip with the .bin and a <b>.json</b> that describes the screen for whoever builds it into a mod, a person or an agent: the texts with their anchors, fonts and styles, every layer with the box it covers, and the slices, in the OS's coordinates (y from the bottom; <b>OS y</b> in the status line counts the same way). With slices, the ZIP also holds each slice's .bin and PNG.</p>
   <p><b>.bin</b> holds the pixels of the visible layers, without text, the way the OS stores its own sprites: column after column, ⌈height ÷ 32⌉ big-endian 32-bit words per column, and bit 7 of the first byte is the bottom-left pixel, because the OS counts y from the bottom. A 48 × 33 sprite is 384 bytes. A mod includes it with <code>.incbin "icon_48x33.bin"</code>. The size in the file name lets the editor open it again.</p>
@@ -1101,22 +1150,26 @@ const Core = (() => {
   // which the device draws in its own fonts, and the layers with the boxes they cover. Coordinates as the OS's drawing
   // calls take them: x from the left, y from the bottom row (0); a box is [x0, y0, x1, y1], both corners included. ----
 
-  function describe(items, w, h, { name = "sprite", device = "models", files = {}, grid = null, guides = null, slices = null } = {}) {
+  function describe(items, w, h, { name = "sprite", device = "models", files = {}, grid = null, guides = null, slices = null, animation = null } = {}) {
     const box = r => r && [r.x, h - r.y - r.h, r.x + r.w - 1, h - 1 - r.y];
-    const texts = [], layers = [];
-    (function walk(list, path, shown) {
-      for (const it of list) {
-        const where = [...path, it.name].join(" / "), visible = shown && it.visible;
-        if (it.type === "group") { layers.push({ name: where, type: "group", visible }); walk(it.children, [...path, it.name], visible); continue; }
-        const px = it.type === "text" ? textPixels(it, w, h) : it.px, r = bounds({ w, h, px }), area = box(r);
-        layers.push({ name: where, type: it.type, visible, box: area });
-        if (it.type === "text") {
-          const at = hasSlices(slices) && slices.find(s => sliceHolds(s, r));   // the slice it lies in, if one does
-          texts.push({ text: it.text, x: it.x, y: h - 1 - it.y, align: it.align, font: it.font, style: it.style, visible, layer: where, box: area,
-            ...(at ? { slice: at.name } : {}) });
+    const scan = tree => {                   // the texts and the layers of one layer tree
+      const texts = [], layers = [];
+      (function walk(list, path, shown) {
+        for (const it of list) {
+          const where = [...path, it.name].join(" / "), visible = shown && it.visible;
+          if (it.type === "group") { layers.push({ name: where, type: "group", visible }); walk(it.children, [...path, it.name], visible); continue; }
+          const px = it.type === "text" ? textPixels(it, w, h) : it.px, r = bounds({ w, h, px }), area = box(r);
+          layers.push({ name: where, type: it.type, visible, box: area });
+          if (it.type === "text") {
+            const at = hasSlices(slices) && slices.find(s => sliceHolds(s, r));   // the slice it lies in, if one does
+            texts.push({ text: it.text, x: it.x, y: h - 1 - it.y, align: it.align, font: it.font, style: it.style, visible, layer: where, box: area,
+              ...(at ? { slice: at.name } : {}) });
+          }
         }
-      }
-    })(items, [], true);
+      })(tree, [], true);
+      return { texts, layers };
+    };
+    const { texts, layers } = scan(items);
     const out = {
       format: "1-bit-editor screen", version: 1, name, device, size: [w, h], files,
       about: "A screen drawn in the 1-Bit Editor. The PNG shows how it looks on the device; this file says what is on it.",
@@ -1142,6 +1195,25 @@ const Core = (() => {
     if (hasSlices(slices)) {
       out.slicesNote = "Slices: boxes over the screen that come out as sprites of their own. Each has its own .bin, the pixels inside without the texts, and a PNG; a text inside one names it under slice.";
       out.slices = slices.map(s => ({ name: s.name, box: box(s), size: [s.w, s.h], ...(s.files ? { files: s.files } : {}) }));
+    }
+    if (animation && Array.isArray(animation.frames) && animation.frames.length > 1) {
+      const a = animation, n = a.frames.length, time = a.drive !== "value";
+      out.animation = {
+        note: `An animation of ${n} frames; the texts and layers above are the frame being edited. ` + (time
+          ? "drive time: the frames follow each other, each for ms (uiTicks at the UI's 30 Hz, ticks10ms at the RTOS's 10 ms), then it loops."
+          : "drive value: a value from 0 to 127 picks the frame, as the device's knob pictures work; map[value] is the frame, spread evenly over range.")
+          + " The .bin files are one frame each, in order; included one after the other they form one table. The PNG shows the frames side by side.",
+        drive: time ? "time" : "value",
+        ...(time ? { loop: true } : { range: [a.min, a.max], map: valueMap(n, a.min, a.max) }),
+        frames: a.frames.map((f, k) => {
+          const e = { index: k };
+          if (time) { e.ms = f.ms; e.uiTicks = uiTicks(f.ms); e.ticks10ms = Math.round(f.ms / 10); }
+          if (f.files) e.files = f.files;
+          if (f.items) { const t = scan(f.items).texts; if (t.length) e.texts = t; }
+          return e;
+        }),
+        ...(a.strip ? { strip: a.strip } : {}),
+      };
     }
     return out;
   }
@@ -1225,14 +1297,15 @@ const Core = (() => {
       return x1 > x0 && y1 > y0 ? { ...s, x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : null;
     }).filter(Boolean);
   }
-  function sliceStems(list, base) {          // [slice, file stem] for each: base_name_WxH with the name made a file name, each once
+  function sliceSlugs(list) {               // [slice, its name as a file name] for each, each once
     const seen = new Map();
     return list.map(s => {
       const slug = s.name.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "slice", n = (seen.get(slug) || 0) + 1;
       seen.set(slug, n);
-      return [s, `${base}_${slug}${n > 1 ? `-${n}` : ""}_${s.w}x${s.h}`];
+      return [s, `${slug}${n > 1 ? `-${n}` : ""}`];
     });
   }
+  const sliceStems = (list, base) => sliceSlugs(list).map(([s, slug]) => [s, `${base}_${slug}_${s.w}x${s.h}`]);   // base_name_WxH
   const sliceHolds = (s, r) => !!r && r.x >= s.x && r.y >= s.y && r.x + r.w <= s.x + s.w && r.y + r.h <= s.y + s.h;
   function slicesFromDescription(d, w, h) {  // the slices a .json from describe() holds (boxes in the OS's coordinates), or null
     const list = d && d.slices;
@@ -1241,6 +1314,79 @@ const Core = (() => {
       const b = s && Array.isArray(s.box) && s.box.length === 4 && s.box.every(Number.isInteger) ? s.box : null;
       return b && { name: s.name, x: b[0], y: h - 1 - b[3], w: b[2] - b[0] + 1, h: b[3] - b[1] + 1 };
     }), w, h);
+  }
+
+  // ---- Frames: an animation is a list of frames, each a layer tree of its own. Driven by time, each shows for its
+  // ms; driven by a value, a value from 0 to 127 picks the frame, as the device's knob pictures work. ----
+
+  const MAX_FRAMES = 128, MS_MIN = 10, MS_MAX = 10000;
+  const frameOf = (items, ms = 100) => ({ items, ms });
+  const clampMs = v => (Number.isInteger(v) ? Math.max(MS_MIN, Math.min(MS_MAX, v)) : 100);
+  const uiTicks = ms => Math.max(1, Math.round(ms * 30 / 1000));   // the UI redraws 30 times a second
+  function valueFrame(v, n, min = 0, max = 127) {   // the frame a value picks: spread evenly over min..max, the ends included
+    if (n <= 1 || max <= min) return 0;
+    return Math.round((Math.max(min, Math.min(max, v)) - min) * (n - 1) / (max - min));
+  }
+  const valueMap = (n, min, max) => Array.from({ length: 128 }, (_, v) => valueFrame(v, n, min, max));
+  function loadAnim(a) {                     // the stored animation settings, checked: the drive and the value range
+    const ok = v => Number.isInteger(v) && v >= 0 && v <= 127;
+    let min = a && ok(a.min) ? a.min : 0, max = a && ok(a.max) ? a.max : 127;
+    if (max <= min) { min = 0; max = 127; }
+    return { drive: a && a.drive === "value" ? "value" : "time", min, max };
+  }
+  const sameAnim = (a, b) => a.drive === b.drive && a.min === b.min && a.max === b.max;
+  function sameFrames(a, b) {                // frames are shared between undo steps unless edited, so most compare by identity
+    return a.length === b.length && a.every((f, i) => f === b[i] || (f.ms === b[i].ms && (f.items === b[i].items || sameItems(f.items, b[i].items))));
+  }
+  function strip(pics) {                     // the frames' pictures side by side in one bitmap, wider than a sprite may be
+    const w = pics[0].w, h = pics[0].h, out = raw(w * pics.length, h);
+    pics.forEach((b, k) => { for (let y = 0; y < h; y++) out.px.set(b.px.subarray(y * w, (y + 1) * w), y * out.w + k * w); });
+    return out;
+  }
+  function unstrip(b, n) {                   // the n frames of a strip
+    const w = b.w / n;
+    return Array.from({ length: n }, (_, k) => crop(b, k * w, 0, w, b.h));
+  }
+
+  // ---- GIF: the frames as an animated GIF with 2 colors, every pixel scaled up, the delays in hundredths of a second ----
+
+  function lzwBlocks(px, minSize) {          // GIF's LZW: codes of growing width, a clear when the table is full, in sub-blocks
+    const clear = 1 << minSize, eoi = clear + 1, out = [];
+    let bits = 0, nbits = 0, size = minSize + 1, next = eoi + 1, dict = new Map();
+    const emit = code => {
+      bits |= code << nbits;
+      nbits += size;
+      while (nbits >= 8) { out.push(bits & 255); bits >>>= 8; nbits -= 8; }
+    };
+    emit(clear);
+    let cur = px[0];
+    for (let i = 1; i < px.length; i++) {
+      const c = px[i], key = cur * 256 + c, found = dict.get(key);
+      if (found !== undefined) { cur = found; continue; }
+      emit(cur);
+      if (next === 4096) { emit(clear); dict = new Map(); next = eoi + 1; size = minSize + 1; }
+      else { if (next === 1 << size) size++; dict.set(key, next++); }   // the decoder widens its codes one step later
+      cur = c;
+    }
+    emit(cur);
+    emit(eoi);
+    if (nbits > 0) out.push(bits & 255);
+    const blocks = [];
+    for (let i = 0; i < out.length; i += 255) blocks.push(new Uint8Array([Math.min(255, out.length - i), ...out.slice(i, i + 255)]));
+    blocks.push(new Uint8Array([0]));
+    return blocks;
+  }
+  function encodeGif(pics, delays, scale = 1, { loop = true, on = [0xf2, 0xf1, 0xea], off = [0x0b, 0x0c, 0x0d] } = {}) {
+    const w = pics[0].w * scale, h = pics[0].h * scale, parts = [], u16 = v => [v & 255, v >> 8];
+    parts.push(latin1("GIF89a"), new Uint8Array([...u16(w), ...u16(h), 0x80, 0, 0]), new Uint8Array([...off, ...on]));   // 2 colors: off, on
+    if (loop) parts.push(new Uint8Array([0x21, 0xff, 11, ...latin1("NETSCAPE2.0"), 3, 1, 0, 0, 0]));
+    pics.forEach((b, k) => {
+      const d = Math.max(0, Math.min(65535, Math.round(delays[k] / 10))), px = new Uint8Array(w * h);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) px[y * w + x] = b.px[Math.floor(y / scale) * b.w + Math.floor(x / scale)] ? 1 : 0;
+      parts.push(new Uint8Array([0x21, 0xf9, 4, 4, ...u16(d), 0, 0]), new Uint8Array([0x2c, 0, 0, 0, 0, ...u16(w), ...u16(h), 0, 2]), ...lzwBlocks(px, 2));
+    });
+    parts.push(new Uint8Array([0x3b]));
+    return concat(parts);
   }
 
   // ---- .bin: the layout of the OS's own sprites, checked against the Model:Cycles OS 1.13 sprites and the
@@ -1345,7 +1491,7 @@ const Core = (() => {
     return concat([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("tEXt", meta),
       chunk("IDAT", await zlib(rows)), chunk("IEND", new Uint8Array(0))]);
   }
-  function readPngMeta(bytes) {              // {w, h, scale[, v, device, layers, grid, guides, slices]} from our tEXt chunk, or null
+  function readPngMeta(bytes) {              // {w, h, scale[, v, device, layers, grid, guides, slices, frames, anim]} from our tEXt chunk, or null; w, h are one frame's
     if (!isPng(bytes)) return null;
     const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     for (let o = 8; o + 12 <= bytes.length;) {
@@ -1364,6 +1510,8 @@ const Core = (() => {
             if (m.grid && typeof m.grid === "object") out.grid = m.grid;
             if (m.guides && typeof m.guides === "object") out.guides = m.guides;
             if (Array.isArray(m.slices)) out.slices = m.slices;
+            if (Array.isArray(m.frames) && m.frames.length >= 1 && m.frames.length <= MAX_FRAMES) out.frames = m.frames;
+            if (m.anim && typeof m.anim === "object") out.anim = m.anim;
             return out;
           } catch (err) { return null; }
         }
@@ -1516,7 +1664,8 @@ const Core = (() => {
     crc32, zlibStored, isPng, encodePng, readPngMeta, fromRgba, fitScale, downscale, zipOne, zipFiles, readZip, describe,
     textsFromDescription, bounds, GRID_MAX, gridFields, loadGrid, hasGrid, sameGrid, gridFromDescription,
     loadGuides, hasGuides, guidesFromDescription,
-    slice, loadSlices, hasSlices, saveSlices, sameSlices, clipSlices, sliceStems, sliceHolds, slicesFromDescription,
+    slice, loadSlices, hasSlices, saveSlices, sameSlices, clipSlices, sliceSlugs, sliceStems, sliceHolds, slicesFromDescription,
+    MAX_FRAMES, MS_MIN, MS_MAX, frameOf, clampMs, uiTicks, valueFrame, valueMap, loadAnim, sameAnim, sameFrames, strip, unstrip, encodeGif,
     pack, unpack, startItems, oldExampleLayers, oldExample,
   };
 })();
@@ -1575,7 +1724,8 @@ const Core = (() => {
   const state = {
     // The document: a tree of layers and groups over the lit canvas, listed top first (Core: layer, group).
     // Pixels nothing was drawn on are clear, so Clear, new canvas area and moved or deleted pixels show what is below.
-    name: "example", w: 128, h: 64, items: C.startItems(),
+    name: "example", w: 128, h: 64, frames: [C.frameOf(C.startItems())], frame: 0,   // the frames (Core: frameOf), each a layer tree, and the one being edited
+    anim: C.loadAnim(null), onion: false,   // the animation's drive and value range; whether the frame before shows faintly
     layout: C.loadGrid(null),               // the layout grid's columns and rows (Core: gridFields), none at first
     guides: C.loadGuides(null),             // guides on pixel edges {x: [...], y: [...]}, y from the top
     slices: [], slice: null,                // boxes that come out as sprites of their own (Core: slice), and the selected one's id
@@ -1592,6 +1742,10 @@ const Core = (() => {
     preview: null,  // the active layer plus the shape being dragged
     hover: null,    // pixel under the pointer [x, y]
   };
+  Object.defineProperty(state, "items", {    // the layer tree of the frame being edited: everything draws on and lists this one
+    get() { return this.frames[this.frame].items; },
+    set(v) { this.frames[this.frame] = { ...this.frames[this.frame], items: v }; },   // a new frame object, so undo's snapshots can share the others
+  });
   const font = () => C.FONTS[state.font];
   const view = it => ({ w: state.w, h: state.h, px: it.px });      // a layer as a bitmap for Core's drawing
   let drag = null, clip = null, antsPhase = 0;
@@ -1685,10 +1839,11 @@ const Core = (() => {
   // ---- Undo: snapshots of the whole layer tree, a few kilobytes, of the layout grid and of which layers were selected ----
 
   const history = { undo: [], redo: [] };
-  const snapshot = () => ({ w: state.w, h: state.h, items: C.cloneItems(state.items), layout: C.loadGrid(state.layout),
+  const snapshot = () => ({ w: state.w, h: state.h, frames: state.frames.map((f, i) => (i === state.frame ? { ...f, items: C.cloneItems(f.items) } : f)),
+    frame: state.frame, anim: { ...state.anim }, get items() { return this.frames[this.frame].items; }, layout: C.loadGrid(state.layout),
     guides: C.loadGuides(state.guides, state.w, state.h), slices: state.slices.map(x => ({ ...x })), selected: [...state.selected], active: state.active });
   function record(before) {                 // keeps `before` as an undo step if the document changed since
-    if (before.w === state.w && before.h === state.h && C.sameItems(before.items, state.items) && C.sameGrid(before.layout, state.layout) &&
+    if (before.w === state.w && before.h === state.h && C.sameFrames(before.frames, state.frames) && C.sameAnim(before.anim, state.anim) && C.sameGrid(before.layout, state.layout) &&
       JSON.stringify(before.guides) === JSON.stringify(state.guides) && C.sameSlices(before.slices, state.slices)) return false;
     history.undo.push(before);
     if (history.undo.length > 200) history.undo.shift();
@@ -1706,7 +1861,9 @@ const Core = (() => {
     const open = new Map(inOrder().filter(it => it.type === "group").map(g => [g.id, g.open]));
     state.w = s.w;
     state.h = s.h;
-    state.items = s.items;
+    state.frames = s.frames;
+    state.frame = s.frame;
+    state.anim = s.anim;
     state.layout = s.layout;
     state.guides = s.guides;
     state.slices = s.slices;
@@ -1723,7 +1880,7 @@ const Core = (() => {
   }
   const undo = () => step(history.undo, history.redo);
   const redo = () => step(history.redo, history.undo);
-  function changed() { render(); save(); renderLayers(); renderSlices(); }
+  function changed() { render(); save(); renderLayers(); renderSlices(); renderFrames(); }
 
   // ---- Moved pixels, moved layers and typed text become part of the sprite here ----
 
@@ -2160,6 +2317,8 @@ const Core = (() => {
       case "-": zoomBy(-1); break;
       case "0": zoomFit(); break;
       case "?": openHelp(); break;
+      case ",": if (!drag) goFrame(state.frame - 1); break;
+      case ".": if (!drag) goFrame(state.frame + 1); break;
       case "Enter": if (!drag) place(); break;
       case "Escape":
         if (drag) cancelDrag();
@@ -2247,6 +2406,13 @@ const Core = (() => {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = token("--oled-on");
     paintPixels(ctx, b, k);
+    if (state.onion && state.frames.length > 1) {   // the frame before, faintly, to line things up
+      const prev = state.frames[(state.frame + state.frames.length - 1) % state.frames.length];
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = token("--led");
+      paintPixels(ctx, C.composite(prev.items, state.w, state.h), k);
+      ctx.globalAlpha = 1;
+    }
     if (state.grid && z >= 6) {
       ctx.fillStyle = token("--grid");
       for (let x = 1; x < b.w; x++) ctx.fillRect(Math.round(x * k), 0, 1, canvas.height);
@@ -2254,7 +2420,8 @@ const Core = (() => {
     }
     canvas.setAttribute("aria-label", `Sprite, ${b.w} by ${b.h} pixels`);
     drawOverlay();
-    drawPreview(b);
+    drawFrameTile(b);
+    drawPreview(playing ? frameComposite(playing.k) : b);
     updateStatus();
   }
   function drawOverlay() {
@@ -2392,6 +2559,7 @@ const Core = (() => {
     if (hoverGuide) s += `  ·  guide ${hoverGuide.axis} ${hoverGuide.axis === "y" && state.osY ? state.h - hoverGuide.edge : hoverGuide.edge}`;
     const sl = drag && drag.tool === "slice" && drag.mode === "move" ? state.slices.find(x => x.id === drag.sid) : sliceHover && sliceHover.slice;
     if (sl) s += `  ·  slice ${sl.name} ${sl.w} × ${sl.h} at ${sl.x}, ${state.osY ? state.h - sl.y - sl.h : sl.y}`;
+    if (state.frames.length > 1) s += `  ·  frame ${state.frame + 1}/${state.frames.length}`;
     $("st-pos").textContent = s;
   }
 
@@ -2602,8 +2770,12 @@ const Core = (() => {
   function resizeTo(w, h) {
     place();
     if (w !== state.w || h !== state.h) {
-      change(() => {                           // every layer keeps its top-left corner; new area is clear
-        for (const it of inOrder()) if (it.type === "layer") it.px = C.resize(view(it), w, h, C.CLEAR).px;
+      change(() => {                           // every layer of every frame keeps its top-left corner; new area is clear
+        state.frames = state.frames.map((f, i) => {   // the other frames get trees of their own: undo's snapshots share the old ones
+          const items = i === state.frame ? f.items : C.cloneItems(f.items);
+          for (const it of inOrder(items)) if (it.type === "layer") it.px = C.resize({ w: state.w, h: state.h, px: it.px }, w, h, C.CLEAR).px;
+          return { ...f, items };
+        });
         state.guides = C.loadGuides(state.guides, w, h);   // guides off a smaller canvas go
         state.slices = C.clipSlices(state.slices, w, h);   // slices are cut to it
         state.w = w;
@@ -3409,6 +3581,202 @@ const Core = (() => {
   });
   $("btn-slice-del").addEventListener("click", () => deleteSlice());
 
+  // ---- Frames: an animation's frames, each a layer tree of its own (Core: frameOf). The strip shows them; a click
+  // edits one, a drag reorders them. Driven by time, each frame has its ms and Play runs them in the On screen panel;
+  // driven by a value, the slider's value picks the frame, as the device's knob pictures work. ----
+
+  const frameStrip = $("frame-strip"), valueSlider = $("anim-value");
+  let playing = null, msBefore = null, framePress = null, sliding = false;   // the preview's playback {k, timer}; the ms field's undo step; a tile held; the slider moving
+  const curFrame = () => state.frames[state.frame];
+  const frameComposite = k => (k === state.frame ? composite() : C.composite(state.frames[k].items, state.w, state.h));
+  const firstValue = k => { for (let v = 0; v < 128; v++) if (C.valueFrame(v, state.frames.length, state.anim.min, state.anim.max) === k) return v; return 0; };
+  const valueNote = v => `value ${v} → frame ${C.valueFrame(v, state.frames.length, state.anim.min, state.anim.max) + 1}`;
+  function goFrame(i) {                      // the frame being edited; the tools and the layers panel see its tree
+    i = Math.max(0, Math.min(state.frames.length - 1, i));
+    if (i === state.frame) return;
+    place();
+    state.frame = i;
+    fixSelection();
+    if (!state.active) selectFirstLayer();
+    renderLayers();
+    renderFrames();
+    render();
+    save();
+  }
+  function addFrame(copy) {                  // after this one: an empty frame, or a copy of it (same layer ids: the selection carries over)
+    if (state.frames.length >= C.MAX_FRAMES) { toast(`An animation can have ${C.MAX_FRAMES} frames at most.`); return; }
+    place();
+    const f = curFrame(), items = copy ? C.cloneItems(f.items) : [C.layer("Layer 1", state.w, state.h)];
+    change(() => { state.frames.splice(state.frame + 1, 0, C.frameOf(items, f.ms)); });
+    goFrame(state.frame + 1);
+  }
+  function deleteFrame() {
+    if (state.frames.length < 2) { toast("The last frame stays. Clear empties it."); return; }
+    place();
+    const i = state.frame;
+    change(() => { state.frames.splice(i, 1); state.frame = Math.min(i, state.frames.length - 1); });
+    fixSelection();
+    if (!state.active) selectFirstLayer();
+    renderLayers();
+    renderFrames();
+    render();
+  }
+  function moveFrame(from, to) {             // the frame at from goes before the one at to (to = the count: to the end)
+    if (from === to || from + 1 === to) return;
+    place();
+    change(() => {
+      const [f] = state.frames.splice(from, 1), at = to > from ? to - 1 : to;
+      state.frames.splice(at, 0, f);
+      state.frame = at;
+    });
+    renderFrames();
+    render();
+  }
+  function setDrive(drive) {
+    if (state.anim.drive === drive) return;
+    stopPlay();
+    change(() => { state.anim = { ...state.anim, drive }; });
+    renderFrames();
+  }
+  function setMs(v, done) {                  // typing shows at once; leaving the field makes it one undo step
+    if (Number.isFinite(v)) {
+      if (!msBefore) msBefore = snapshot();
+      state.frames[state.frame] = { ...curFrame(), ms: C.clampMs(Math.round(v)) };
+    }
+    if (done) { if (!msBefore || !record(msBefore)) save(); msBefore = null; }
+    renderFrames();
+  }
+  function setRange(min, max) {              // From and To: one undo step; what doesn't make a range is refused
+    const a = { drive: state.anim.drive, min, max }, ok = Number.isInteger(min) && Number.isInteger(max) && min >= 0 && max <= 127 && min < max;
+    if (!ok) { toast("From has to be below To, both from 0 to 127.", true); renderFrames(); return; }
+    change(() => { state.anim = C.loadAnim(a); });
+    renderFrames();
+  }
+  function startPlay() {                     // the On screen panel runs through the frames with their ms; the canvas stays as it is
+    if (playing || state.frames.length < 2 || state.anim.drive !== "time") return;
+    playing = { k: state.frame, timer: 0 };
+    const tick = () => {
+      if (!playing) return;
+      playing.k = (playing.k + 1) % state.frames.length;
+      drawPreview(frameComposite(playing.k));
+      playing.timer = setTimeout(tick, state.frames[playing.k].ms);
+    };
+    playing.timer = setTimeout(tick, curFrame().ms);
+    $("btn-frame-play").textContent = "Stop";
+    $("btn-frame-play").setAttribute("aria-pressed", "true");
+    drawPreview(frameComposite(playing.k));
+  }
+  function stopPlay() {
+    if (!playing) return;
+    clearTimeout(playing.timer);
+    playing = null;
+    $("btn-frame-play").textContent = "Play";
+    $("btn-frame-play").setAttribute("aria-pressed", "false");
+    render();
+  }
+  function drawFrameTile(b) {                // the frame being edited, as it is right now, in its tile
+    const tile = frameStrip.children[state.frame], cv = tile && tile.querySelector("canvas");
+    if (cv) drawPic(cv, b, 64, 32, false);
+  }
+  function renderFrames() {                  // builds the tiles anew and shows the settings of the drive
+    const n = state.frames.length, c = inkColors(), time = state.anim.drive === "time";
+    frameStrip.replaceChildren(...state.frames.map((f, k) => {
+      const tile = document.createElement("div"), cv = document.createElement("canvas"), num = document.createElement("span");
+      tile.className = "fr";
+      tile.dataset.index = k;
+      tile.tabIndex = k === state.frame ? 0 : -1;
+      tile.setAttribute("role", "option");
+      tile.setAttribute("aria-selected", String(k === state.frame));
+      tile.setAttribute("aria-label", `Frame ${k + 1} of ${n}`);
+      tile.title = time ? `${f.ms} ms` : `values ${firstValue(k)} to ${k + 1 < n ? firstValue(k + 1) - 1 : 127}`;
+      drawPic(cv, frameComposite(k), 64, 32, false, c);
+      num.className = "fr-n";
+      num.textContent = String(k + 1);
+      tile.append(cv, num);
+      return tile;
+    }));
+    const cur = frameStrip.children[state.frame];
+    if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: "nearest", inline: "nearest" });
+    $("btn-frame-del").disabled = n < 2;
+    $("btn-frame-add").disabled = $("btn-frame-dup").disabled = n >= C.MAX_FRAMES;
+    const settings = $("frame-settings");
+    settings.hidden = n < 2;
+    for (const b of $("seg-drive").children) b.setAttribute("aria-pressed", String(b.dataset.v === state.anim.drive));
+    for (const el of settings.querySelectorAll("[data-drive]")) el.hidden = el.dataset.drive !== state.anim.drive;
+    if (document.activeElement !== $("frame-ms")) $("frame-ms").value = String(curFrame().ms);
+    if (document.activeElement !== $("anim-min")) $("anim-min").value = String(state.anim.min);
+    if (document.activeElement !== $("anim-max")) $("anim-max").value = String(state.anim.max);
+    if (!sliding && document.activeElement !== valueSlider) { const v = firstValue(state.frame); valueSlider.value = String(v); $("anim-note").textContent = valueNote(v); }
+    $("onion").checked = state.onion;
+    $("btn-gif").hidden = n < 2;
+    if (playing && (n < 2 || !time)) stopPlay();
+  }
+  frameStrip.addEventListener("pointerdown", e => {   // a click edits the frame; a drag of 5 px takes it along to reorder
+    const tile = e.target.closest(".fr");
+    if (!tile || e.button !== 0 || framePress) return;
+    const i = Number(tile.dataset.index);
+    goFrame(i);
+    framePress = { i, pointerId: e.pointerId, x: e.clientX, y: e.clientY, drag: false, to: null };
+    window.addEventListener("pointermove", frameMove);
+    window.addEventListener("pointerup", frameEnd);
+    window.addEventListener("pointercancel", frameEnd);
+  });
+  function frameMove(e) {
+    const p = framePress;
+    if (!p || e.pointerId !== p.pointerId) return;
+    if (!p.drag) {
+      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < 5) return;
+      p.drag = true;
+      frameStrip.classList.add("dragging");
+      frameStrip.children[p.i].classList.add("dragged");
+      try { frameStrip.setPointerCapture(p.pointerId); } catch (err) { /* it works without, inside the window */ }
+    }
+    let to = state.frames.length;            // before the first tile whose middle lies right of the pointer, else at the end
+    for (const t of frameStrip.children) { const r = t.getBoundingClientRect(); if (e.clientX < r.left + r.width / 2) { to = Number(t.dataset.index); break; } }
+    p.to = to;
+    for (const t of frameStrip.children) t.classList.remove("drop-before", "drop-after");
+    if (to === p.i || to === p.i + 1) return;   // its own place: no mark
+    if (to < state.frames.length) frameStrip.children[to].classList.add("drop-before"); else frameStrip.lastElementChild.classList.add("drop-after");
+  }
+  function frameEnd(e) {
+    const p = framePress;
+    if (!p || e.pointerId !== p.pointerId) return;
+    framePress = null;
+    window.removeEventListener("pointermove", frameMove);
+    window.removeEventListener("pointerup", frameEnd);
+    window.removeEventListener("pointercancel", frameEnd);
+    frameStrip.classList.remove("dragging");
+    for (const t of frameStrip.children) t.classList.remove("dragged", "drop-before", "drop-after");
+    try { frameStrip.releasePointerCapture(p.pointerId); } catch (err) { /* already released */ }
+    if (p.drag && e.type === "pointerup" && p.to !== null) moveFrame(p.i, p.to);
+  }
+  frameStrip.addEventListener("keydown", e => {   // ← → select, Delete deletes
+    if (!e.target.classList || !e.target.classList.contains("fr")) return;
+    if (e.key === "ArrowLeft") goFrame(state.frame - 1);
+    else if (e.key === "ArrowRight") goFrame(state.frame + 1);
+    else if (e.key === "Delete" || e.key === "Backspace") deleteFrame();
+    else return;
+    e.preventDefault();
+    e.stopPropagation();
+    const t = frameStrip.children[state.frame];
+    if (t) t.focus({ preventScroll: true });
+  });
+  $("btn-frame-add").addEventListener("click", () => addFrame(false));
+  $("btn-frame-dup").addEventListener("click", () => addFrame(true));
+  $("btn-frame-del").addEventListener("click", deleteFrame);
+  $("btn-frame-play").addEventListener("click", () => (playing ? stopPlay() : startPlay()));
+  $("onion").addEventListener("change", e => { state.onion = e.target.checked; render(); save(); });
+  $("seg-drive").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setDrive(b.dataset.v); });
+  $("frame-ms").addEventListener("input", () => { if ($("frame-ms").value !== "") setMs(Number($("frame-ms").value), false); });
+  $("frame-ms").addEventListener("change", () => setMs($("frame-ms").value === "" ? NaN : Number($("frame-ms").value), true));   // emptied: as it was
+  for (const id of ["anim-min", "anim-max"]) $(id).addEventListener("change", () => setRange(Number($("anim-min").value), Number($("anim-max").value)));
+  valueSlider.addEventListener("input", () => {   // the slider's value picks the frame to edit, and the note says which
+    const v = Number(valueSlider.value);
+    $("anim-note").textContent = valueNote(v);
+    sliding = true;
+    try { goFrame(C.valueFrame(v, state.frames.length, state.anim.min, state.anim.max)); } finally { sliding = false; }
+  });
+
   // ---- Stamps: ready-made pieces and your own, dragged onto the canvas or clicked into its middle. A stamp floats on
   // the selected layer like pasted pixels (the Select tool takes over) until Enter or a click next to it places it. ----
 
@@ -3570,7 +3938,7 @@ const Core = (() => {
   // as tabs; a tab dragged out gets its own place again. The layout stays in this browser. ----
 
   const side = document.querySelector("aside.side");
-  const PANELS = ["colors", "layers", "stamps", "slices", "file", "preview"];
+  const PANELS = ["colors", "layers", "stamps", "slices", "frames", "file", "preview"];
   const PANEL_STORE = "model-sprite-editor:panels";
   const panelEl = Object.fromEntries(PANELS.map(k => [k, side.querySelector(`[data-panel="${k}"]`)]));
   const panelTitle = k => panelEl[k].querySelector("h2").textContent;
@@ -3732,35 +4100,64 @@ const Core = (() => {
     }
     return true;
   }
-  async function savePng(scale) {
-    place();
-    const name = scale > 1 ? `${fileBase()}@${scale}x.png` : `${fileBase()}.png`;
-    // The picture as the device shows it (white = lit = light here), plus the layers, the layout grid and the guides.
-    // Version 3: not inverted, unlike 2.
-    const png = await C.encodePng(composite(), scale, { v: 3, device: state.device, layers: C.saveItems(state.items),
+  function workingPng(scale) {               // the picture as the device shows it (white = lit = light here), with the layers, the layout grid,
+    const n = state.frames.length;           // the guides and the slices inside; frames side by side, each with its layers. Version 3: not inverted, unlike 2.
+    const pics = state.frames.map((f, k) => frameComposite(k));
+    return C.encodePng(n > 1 ? C.strip(pics) : pics[0], scale, { v: 3, w: state.w, h: state.h, device: state.device,
+      ...(n > 1 ? { frames: state.frames.map(f => ({ ms: f.ms, layers: C.saveItems(f.items) })), anim: state.anim } : { layers: C.saveItems(state.items) }),
       ...(C.hasGrid(state.layout) ? { grid: state.layout } : {}), ...(C.hasGuides(state.guides) ? { guides: state.guides } : {}),
       ...(C.hasSlices(state.slices) ? { slices: C.saveSlices(state.slices) } : {}) });
-    if (await offer(name, png, "image/png")) toast(`Saved ${name}`);
   }
-  function describeJson(base, stems = []) {  // the screen described (Core: describe), number pairs and boxes kept on one line
-    const slices = stems.map(([sl, stem]) => ({ ...sl, files: { bin: `${stem}.bin`, png: `${stem}.png` } }));
-    const about = C.describe(state.items, state.w, state.h, { name: state.name, device: state.device, grid: state.layout, guides: state.guides, slices,
-      files: { bin: `${base}.bin`, png: `${base}.png`, png8: `${base}@8x.png` } });
+  async function savePng(scale) {
+    place();
+    const name = scale > 1 ? `${fileBase()}@${scale}x.png` : `${fileBase()}.png`, n = state.frames.length;
+    if (await offer(name, await workingPng(scale), "image/png")) toast(`Saved ${name}${n > 1 ? `: ${n} frames side by side` : ""}`);
+  }
+  async function saveGif() {                 // every frame, 4× bigger; driven by time with its ms, driven by a value each for a tenth of a second
+    place();
+    const n = state.frames.length, scale = 4, name = `${fileBase()}@${scale}x.gif`;
+    const pics = state.frames.map((f, k) => frameComposite(k)), delays = state.frames.map(f => (state.anim.drive === "time" ? f.ms : 100));
+    if (await offer(name, C.encodeGif(pics, delays, scale), "image/gif")) toast(`Saved ${name}: ${n} frames, ${scale}× bigger`);
+  }
+  function describeJson(base, slices = [], animation = null) {   // the screen described (Core: describe), number pairs and boxes kept on one line
+    const about = C.describe(state.items, state.w, state.h, { name: state.name, device: state.device, grid: state.layout, guides: state.guides, slices, animation,
+      files: animation ? { png: `${base}.png`, png8: `${base}@8x.png` } : { bin: `${base}.bin`, png: `${base}.png`, png8: `${base}@8x.png` } });
     return new TextEncoder().encode(`${JSON.stringify(about, null, 2).replace(/\[\s+(-?\d+(?:,\s+-?\d+)*)\s+\]/g, (m, n) => `[${n.split(/,\s+/).join(", ")}]`)}\n`);
   }
-  async function saveBin() {                 // the pixels without the texts (the device draws those), each slice's, and the JSON
-    place();                                 // about it all, in one ZIP: of two downloads in a row, a browser may keep only the last
-    const base = fileBase(), name = `${base}.bin`, json = `${base}.json`, zip = `${base}.zip`;
-    const pic = composite(live(), false), bytes = C.toBin(pic), stems = C.sliceStems(state.slices, safeName());   // a set bit lights up: light here
-    const files = [{ name, data: bytes }];
-    for (const [sl, stem] of stems) {        // each slice: its pixels in the OS's layout, and a PNG to look at
-      const b = C.crop(pic, sl.x, sl.y, sl.w, sl.h);
-      files.push({ name: `${stem}.bin`, data: C.toBin(b) }, { name: `${stem}.png`, data: await C.encodePng(b, 1, { v: 3, device: state.device }) });
+  async function saveBin() {                 // the pixels without the texts (the device draws those), each slice's, each frame's, and
+    place();                                 // the JSON about it all, in one ZIP: of two downloads in a row, a browser may keep only the last
+    const base = fileBase(), nm = safeName(), json = `${base}.json`, zip = `${base}.zip`, n = state.frames.length, slugs = C.sliceSlugs(state.slices);
+    const pics = state.frames.map((f, k) => (k === state.frame ? composite(live(), false) : C.composite(f.items, state.w, state.h, null, false)));   // a set bit lights up: light here
+    const sliceStrip = ([sl, slug]) => `${nm}_${slug}_${sl.w}x${sl.h}.png`, files = [];
+    let bytes, what;
+    if (n === 1) {
+      const pic = pics[0], name = `${base}.bin`;
+      bytes = C.toBin(pic);
+      files.push({ name, data: bytes });
+      for (const [sl, slug] of slugs) {      // each slice: its pixels in the OS's layout, and a PNG to look at
+        const b = C.crop(pic, sl.x, sl.y, sl.w, sl.h), stem = `${nm}_${slug}_${sl.w}x${sl.h}`;
+        files.push({ name: `${stem}.bin`, data: C.toBin(b) }, { name: `${stem}.png`, data: await C.encodePng(b, 1, { v: 3, device: state.device }) });
+      }
+      files.push({ name: json, data: describeJson(base, slugs.map(([sl, slug]) => ({ ...sl, files: { bin: `${nm}_${slug}_${sl.w}x${sl.h}.bin`, png: sliceStrip([sl, slug]) } }))) });
+      what = `${name} (${bytes.length} bytes)`;
+    } else {                                 // frames: one .bin each (in order they are one table), the working PNG as the strip, each slice's bins and strip
+      const pad = n >= 100 ? 3 : 2, tag = k => `f${String(k + 1).padStart(pad, "0")}`;
+      const frames = state.frames.map((f, k) => ({ ms: f.ms, items: f.items, files: { bin: `${nm}_${tag(k)}_${state.w}x${state.h}.bin`,
+        ...(slugs.length ? { slices: Object.fromEntries(slugs.map(([sl, slug]) => [sl.name, `${nm}_${slug}_${tag(k)}_${sl.w}x${sl.h}.bin`])) } : {}) } }));
+      files.push({ name: `${base}.png`, data: await workingPng(1) });
+      frames.forEach((f, k) => { bytes = C.toBin(pics[k]); files.push({ name: f.files.bin, data: bytes }); });
+      for (const [sl, slug] of slugs) {
+        const cut = pics.map(pic => C.crop(pic, sl.x, sl.y, sl.w, sl.h));
+        cut.forEach((b, k) => files.push({ name: frames[k].files.slices[sl.name], data: C.toBin(b) }));
+        files.push({ name: sliceStrip([sl, slug]), data: await C.encodePng(C.strip(cut), 1, { v: 3, w: sl.w, h: sl.h, device: state.device, frames: state.frames.map(f => ({ ms: f.ms })) }) });
+      }
+      const strip = { png: `${base}.png`, frameWidth: state.w, ...(slugs.length ? { slices: Object.fromEntries(slugs.map(e => [e[0].name, sliceStrip(e)])) } : {}) };
+      files.push({ name: json, data: describeJson(base, slugs.map(([sl, slug]) => ({ ...sl, files: { png: sliceStrip([sl, slug]) } })), { ...state.anim, frames, strip }) });
+      what = `${n} frames (${n} × ${bytes.length} bytes), ${base}.png`;
     }
-    files.push({ name: json, data: describeJson(base, stems) });
     if (await offer(zip, C.zipFiles(files), "application/zip")) {
-      const n = stems.length;
-      toast(`Saved ${zip} with ${name} (${bytes.length} bytes)${n ? `, ${n} slice${n === 1 ? "" : "s"}` : ""} and ${json} inside`);
+      const k = slugs.length;
+      toast(`Saved ${zip} with ${what}${k ? `, ${k} slice${k === 1 ? "" : "s"}` : ""} and ${json} inside`);
     }
   }
   function binSprite(bytes, name) {
@@ -3781,38 +4178,47 @@ const Core = (() => {
     const g = c.getContext("2d");
     g.drawImage(img, 0, 0);
     let b = C.fromRgba(g.getImageData(0, 0, w, h).data, w, h);
-    const meta = C.readPngMeta(bytes);
-    if (meta && meta.scale > 1 && w === meta.w * meta.scale && h === meta.h * meta.scale) b = C.downscale(b, meta.scale);
-    else if (!C.fits(w, h)) {
+    const meta = C.readPngMeta(bytes), n = meta && meta.frames ? meta.frames.length : 1;   // frames side by side: a strip
+    const isStrip = n > 1 && w === meta.w * n * meta.scale && h === meta.h * meta.scale;
+    if (meta && meta.scale > 1 && (isStrip || (w === meta.w * meta.scale && h === meta.h * meta.scale))) b = C.downscale(b, meta.scale);
+    else if (!isStrip && !C.fits(w, h)) {
       const s = C.fitScale(b);
       if (!s) throw new Error(`${name} is ${w} × ${h} pixels. Sprites can be at most 128 × 64. Scaled-up pixel art is scaled back down by itself, but this image isn't made of even blocks.`);
       b = C.downscale(b, s);
     }
     if (meta && meta.v === 2) b = C.invert(b);   // white = lit = light, except in the PNGs of version 2, which were inverted
-    const sprite = C.toSprite(b);
-    let layers = null, grid = null, guides = null, slices = null;   // a PNG this editor saved carries its layers, layout grid, guides and slices
+    const pics = isStrip ? C.unstrip(b, n) : [b], sprite = C.toSprite(pics[0]);
+    let layers = null, grid = null, guides = null, slices = null, frames = null, anim = null;   // a PNG this editor saved carries its layers, layout grid, guides, slices and frames
     if (meta && meta.w === sprite.w && meta.h === sprite.h) {
+      const tree = saved => { try { return saved ? C.loadItems(saved, meta.w, meta.h) : null; } catch (err) { return null; } };
       if (meta.layers) {
-        try { layers = C.loadItems(meta.layers, meta.w, meta.h); } catch (err) { layers = null; }
+        layers = tree(meta.layers);
         if (layers && meta.v === 2) C.oldTexts(layers);
+      }
+      if (isStrip) {                         // each frame's layers, or its pixels as one layer
+        frames = meta.frames.map((f, k) => C.frameOf(tree(f && f.layers) || [C.layer("Layer 1", meta.w, meta.h, pics[k].px)], C.clampMs(f && f.ms)));
+        anim = C.loadAnim(meta.anim);
+        layers = frames[0].items;
       }
       if (meta.grid) grid = C.loadGrid(meta.grid);
       if (meta.guides) guides = C.loadGuides(meta.guides, meta.w, meta.h);
       if (meta.slices) slices = C.loadSlices(meta.slices, meta.w, meta.h);
     }
-    return { b: sprite, layers, grid, guides, slices, device: meta && meta.device };
+    return { b: sprite, layers, grid, guides, slices, frames, anim, device: meta && meta.device };
   }
   async function openBytes(name, bytes) {    // a PNG or a .bin becomes the document; throws with a message otherwise
     let got;
     if (C.isPng(bytes)) got = await pngSprite(bytes, name);
     else if (/\.bin$/i.test(name)) got = { b: binSprite(bytes, name), layers: null };
     else throw new Error(`${name} is neither a PNG nor a .bin file.`);
-    const { b, layers, grid, guides, slices, device } = got;
+    const { b, layers, grid, guides, slices, frames, anim, device } = got;
       state.sel = null;
       change(() => {
         state.w = b.w;
         state.h = b.h;
-        state.items = layers || [C.layer("Layer 1", b.w, b.h, b.px)];
+        state.frames = frames || [C.frameOf(layers || [C.layer("Layer 1", b.w, b.h, b.px)])];
+        state.frame = 0;
+        state.anim = anim || C.loadAnim(null);
         state.layout = grid || C.loadGrid(null);   // the file is the document now, its layout grid and guides too
         state.guides = guides || C.loadGuides(null);
         state.slices = slices || [];
@@ -3827,8 +4233,8 @@ const Core = (() => {
     state.fit = true;
     sizeChanged();
     save();
-    const n = inOrder().filter(it => it.type !== "group").length;
-    return `${b.w} × ${b.h}${layers ? `, ${n} layer${n === 1 ? "" : "s"}` : ""}`;
+    const n = inOrder().filter(it => it.type !== "group").length, k = state.frames.length;
+    return `${b.w} × ${b.h}${k > 1 ? `, ${k} frames` : ""}${layers ? `, ${n} layer${n === 1 ? "" : "s"}` : ""}`;
   }
   function addTexts(name, bytes) {           // the texts of a .json (Core: describe) come back as text layers on top,
     let d, texts;                            // its layout grid, guides and slices with them → "2 texts and 3 guides", "0 texts" for none
@@ -3904,6 +4310,7 @@ const Core = (() => {
   $("btn-save").addEventListener("click", () => savePng(1));
   $("btn-share").addEventListener("click", () => savePng(8));
   $("btn-bin").addEventListener("click", saveBin);
+  $("btn-gif").addEventListener("click", saveGif);
   $("btn-undo").addEventListener("click", undo);
   $("btn-redo").addEventListener("click", redo);
   $("btn-clear").addEventListener("click", () => {     // start over: one empty layer over the lit canvas
@@ -3957,11 +4364,12 @@ const Core = (() => {
         (function walk(list) { for (const it of list) if (it.type === "group") walk(it.children); else if (l[it.id]) it.px = l[it.id]; })(items);
       }
       localStorage.setItem(STORE, JSON.stringify({
-        v: 4, name: state.name, device: state.device, w: state.w, h: state.h, items: C.saveItems(items), layout: state.layout, guides: state.guides,
+        v: 5, name: state.name, device: state.device, w: state.w, h: state.h, layout: state.layout, guides: state.guides,
+        frames: state.frames.map((f, i) => ({ ms: f.ms, items: C.saveItems(i === state.frame ? items : f.items) })), frame: state.frame, anim: state.anim,
         slices: C.saveSlices(state.slices),
         prefs: { tool: state.tool, primary: state.primary, secondary: state.secondary, size: state.size,
           filled: state.filled, radius: state.radius, dir: state.dir, align: state.align, textStyle: state.textStyle, font: state.font, grid: state.grid, osY: state.osY, stampTab: state.stampTab,
-          layoutOn: state.layoutOn, guidesOn: state.guidesOn, rulersOn: state.rulersOn, slicesOn: state.slicesOn },
+          layoutOn: state.layoutOn, guidesOn: state.guidesOn, rulersOn: state.rulersOn, slicesOn: state.slicesOn, onion: state.onion },
       }));
     } catch (err) { /* storage is a convenience */ }
   }
@@ -3969,17 +4377,26 @@ const Core = (() => {
     try {
       const d = JSON.parse(localStorage.getItem(STORE) || "null");
       if (!d) return false;
-      if (d.v === 3 || d.v === 4) {             // 3: its text layers were drawn the other way round
+      if (d.v === 3 || d.v === 4 || d.v === 5) {   // 3: its text layers were drawn the other way round; 5: frames
         if (!C.fits(d.w, d.h)) return false;
-        state.items = C.loadItems(d.items, d.w, d.h);
-        if (d.v === 3) C.oldTexts(state.items);
+        if (d.v === 5) {
+          if (!Array.isArray(d.frames) || !d.frames.length || d.frames.length > C.MAX_FRAMES) return false;
+          state.frames = d.frames.map(f => C.frameOf(C.loadItems(f.items, d.w, d.h), C.clampMs(f.ms)));
+          state.frame = Number.isInteger(d.frame) ? Math.max(0, Math.min(state.frames.length - 1, d.frame)) : 0;
+          state.anim = C.loadAnim(d.anim);
+        } else {
+          state.frames = [C.frameOf(C.loadItems(d.items, d.w, d.h))];
+          state.frame = 0;
+          state.anim = C.loadAnim(null);
+          if (d.v === 3) C.oldTexts(state.items);
+        }
         state.layout = C.loadGrid(d.layout);
         state.guides = C.loadGuides(d.guides, d.w, d.h);
         state.slices = C.loadSlices(d.slices, d.w, d.h);
         state.w = d.w;
         state.h = d.h;
-        if (untouchedExample(state.items, d.w, d.h)) {   // today's start screen takes its place
-          state.items = C.startItems();
+        if (state.frames.length === 1 && untouchedExample(state.items, d.w, d.h)) {   // today's start screen takes its place
+          state.frames = [C.frameOf(C.startItems())];
           state.slices = [];
           state.w = 128;
           state.h = 64;
@@ -4014,12 +4431,15 @@ const Core = (() => {
       if (typeof p.guidesOn === "boolean") state.guidesOn = p.guidesOn;
       if (typeof p.rulersOn === "boolean") state.rulersOn = p.rulersOn;
       if (typeof p.slicesOn === "boolean") state.slicesOn = p.slicesOn;
+      if (typeof p.onion === "boolean") state.onion = p.onion;
       if (["basics", "synth", "ui", "custom"].includes(p.stampTab)) state.stampTab = p.stampTab;
       return true;
     } catch (err) {
       state.w = 128;
       state.h = 64;
-      state.items = C.startItems();
+      state.frames = [C.frameOf(C.startItems())];
+      state.frame = 0;
+      state.anim = C.loadAnim(null);
       state.layout = C.loadGrid(null);
       state.guides = C.loadGuides(null);
       state.slices = [];
@@ -4068,6 +4488,7 @@ const Core = (() => {
   selectFirstLayer();
   renderLayers();
   renderSlices();
+  renderFrames();
   loadCustom();
   renderStamps();
   showGrid();

@@ -42,6 +42,11 @@ single HTML file that runs in the browser, with no build step and no dependencie
   lists them with their sizes, renames them (double-click) and makes one around the selection or around what the
   selected layer holds. They show in green, are never part of the pixels, and are saved with the sprite and in its
   PNG; Slices at the bottom hides them.
+- **Frames:** an animation is a list of frames, each with layers of its own, shown in a strip in the Frames panel:
+  Add, Duplicate (the copy's layers keep their names), Delete, drag to reorder, `,` and `.` to step through, Onion skin
+  to see the frame before. The drive is what moves it: with Time each frame has its milliseconds and Play runs them in
+  the On screen panel; with Value a value from 0 to 127 picks the frame, the way a knob's picture changes on the
+  Model:Cycles, spread evenly over From to To, and the slider's value chooses the frame to edit.
 - What you draw is what the device shows: light pixels are lit, dark ones stay off. The canvas under all layers is
   light, a lit screen; for a dark screen like the OS's own, fill a layer with Dark. The left mouse button starts out
   with Dark, the right one with Light. Any color or pattern can go on either button; <kbd>X</kbd> swaps them. Moved
@@ -64,9 +69,10 @@ The File panel on the right holds Open and Export (Clear sits in the top bar, ne
 
 | Button | File | What it's for |
 |---|---|---|
-| Save PNG | `name_48x33.png` | The working file: 1-bit as on the device (white = lit), with the layers inside. Open it again to keep drawing. |
+| Save PNG | `name_48x33.png` | The working file: 1-bit as on the device (white = lit), with the layers inside. Open it again to keep drawing. An animation's frames lie side by side in it. |
 | PNG ×8 | `name_48x33@8x.png` | A bigger copy for sharing. It opens again at its real size, layers and all. |
-| .bin | `name_48x33.zip` | One ZIP: `name_48x33.bin`, the visible layers' pixels without the texts in the OS's own sprite layout, ready for a mod (a set bit is a lit pixel, light in the editor); `name_48x33.json`, the screen described for whoever builds it into a mod, a person or an agent (see below); and for each slice its own `name_icon_25x22.bin` and `.png`. |
+| .bin | `name_48x33.zip` | One ZIP: `name_48x33.bin`, the visible layers' pixels without the texts in the OS's own sprite layout, ready for a mod (a set bit is a lit pixel, light in the editor); `name_48x33.json`, the screen described for whoever builds it into a mod, a person or an agent (see below); and for each slice its own `name_icon_25x22.bin` and `.png`. With frames: one `name_f01_48x33.bin` per frame (included one after the other they form one table), the strip PNG, each slice's bins and strip. |
+| GIF | `name_48x33@4x.gif` | With frames: an animated GIF, 4× bigger, for sharing. Driven by time with each frame's milliseconds; driven by a value each frame for a tenth of a second. |
 
 The PNGs show the picture of the visible layers. The layers themselves ride along in a text chunk
 (`model-sprite-editor`), so other programs just see the picture and the editor gets every layer back.
@@ -77,7 +83,9 @@ It comes with the .bin, in the same ZIP, and says what the pictures can't: the t
 edge, middle or right edge, y on the bottom row of the capitals), font, alignment and style, so the device can draw
 them in its own fonts, and every layer and group with the box it covers. With a layout grid it also lists the columns
 as `[x0, x1]` and the rows as `[y0, y1]`, rows from the top, and the guides as the pixel edges they lie on. With slices
-it lists each one's name, box, size and files, and a text that lies inside a slice names it.
+it lists each one's name, box, size and files, and a text that lies inside a slice names it. With frames it holds an
+`animation` block: the drive, per frame its file, its milliseconds with the UI ticks at 30 Hz and the 10 ms ticks of
+the OS (time), or the range and a 128-entry map from value to frame (value), and the strip PNGs.
 Coordinates are the OS's: x from the left, y from the bottom row, boxes as `[x0, y0, x1, y1]` with both corners
 included. Show an agent the PNG for the look and this file for the numbers. The editor uses only its own stand-in
 fonts, never the device's.
@@ -131,6 +139,7 @@ Open `index.html` in a browser. To put it online, serve the folder as it is, for
 | <kbd>⌘/Ctrl</kbd> <kbd>A</kbd> <kbd>C</kbd> <kbd>X</kbd> <kbd>V</kbd> | Select all, copy, cut, paste |
 | Arrow keys | Nudge the selection by 1 pixel, with <kbd>Shift</kbd> by 8; with Move, the selected layers; with Slice, the selected slice |
 | <kbd>Enter</kbd>, <kbd>Esc</kbd> | Place moved pixels or text; deselect, drop the text or let go of the slice |
+| <kbd>,</kbd> <kbd>.</kbd> | The frame before, the frame after |
 | <kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd> | Zoom in, zoom out, fit |
 | <kbd>⌘/Ctrl</kbd> <kbd>S</kbd>, <kbd>⌘/Ctrl</kbd> <kbd>O</kbd> | Save PNG, open a file |
 | <kbd>Shift</kbd> <kbd>R</kbd>, <kbd>Shift</kbd> <kbd>G</kbd> | Show or hide the rulers, the layout grid |
@@ -139,13 +148,13 @@ Open `index.html` in a browser. To put it online, serve the folder as it is, for
 
 ## Tests
 
-`node tests/core.test.js` checks the drawing and file code (shapes, patterns, fonts, layers, slices, .bin, PNG, ZIP). It
+`node tests/core.test.js` checks the drawing and file code (shapes, patterns, fonts, layers, slices, frames, .bin, PNG, GIF, ZIP). It
 needs Node 18 or newer and nothing else.
 
 ## Not in this version
 
-The sprite's mask plane (the OS draws a sprite through a mask, and mods so far reuse one the OS has), importing
-photos or other artwork, and animation.
+The sprite's mask plane (the OS draws a sprite through a mask, and mods so far reuse one the OS has), and importing
+photos or other artwork.
 
 ## License
 
