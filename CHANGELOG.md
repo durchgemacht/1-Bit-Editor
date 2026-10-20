@@ -27,6 +27,8 @@
   the frames side by side and open again as the animation; the .bin button's ZIP holds one .bin per frame, the strip
   PNG, each slice's bins and strip, and an `animation` block in the .json (ms with UI ticks, or the value map); **GIF**
   saves an animated GIF, 4× bigger.
+- **Stamps:** the Basics and Synth tabs and the UI examples Knob, Fader and Checkbox are gone until there is real
+  content for them; UI keeps the title bar and 1/2 Screen.
 
 ## 0.1 (2026-10-17)
 

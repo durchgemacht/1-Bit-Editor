@@ -23,11 +23,10 @@ single HTML file that runs in the browser, with no build step and no dependencie
   one onto another to group the two, or onto a group to put it inside. Double-click renames, the eye hides a
   layer, and New Layer, Duplicate, Group and Delete sit under the list. The Move tool shifts the selected layers;
   what ends up outside the canvas is cut off once the move is done (while dragging or nudging nothing is lost).
-- **Stamps:** ready-made pieces to drag onto the canvas (or click into its middle): Basics, Synth and UI, three of
-  each for now, plus a 34 × 34 icon under Basics (Cute ghost; the size of the OS's machine icons) and the OS-style
-  title bar (128 × 13) and 1/2 Screen (64 × 64, dark, corners rounded 4 px) under UI.
-  They bring their own dark and light pixels and float on the selected layer
-  until you place them. Under Custom, Save selection keeps a selection as your own stamp (in this browser).
+- **Stamps:** ready-made pieces to drag onto the canvas (or click into its middle): under UI the OS-style title bar
+  (128 × 13) and 1/2 Screen (64 × 64, dark, corners rounded 4 px), for now. They bring their own dark and light pixels
+  and float on the selected layer until you place them. Under Custom, Save selection keeps a selection as your own
+  stamp (in this browser).
 - **Layout grid:** the grid button left of the size folds out columns and rows laid over the canvas to count by, each
   with a count, the gap between them and the margin outside them; what doesn't divide evenly goes to the first ones, a
   pixel each. Thin red lines show their edges, never in the pixels, and the status line names the column and row under

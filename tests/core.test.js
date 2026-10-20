@@ -605,14 +605,8 @@ async function main() {
   // ---- Stamps ----
   {
     const ids = C.STAMPS.map(s => s.id), cats = C.STAMP_CATS.map(([c]) => c), _ = C.CLEAR;
-    check("stamps: three examples in each tab, plus the Cute ghost icon under Basics and the title bar and 1/2 Screen under UI; ids unique",
-      cats.join() === "basics,synth,ui" && cats.map(c => C.STAMPS.filter(s => s.cat === c).length).join() === "4,3,5" &&
-      new Set(ids).size === ids.length && !ids.includes("ghost") && !ids.includes("cat"));
-    const icons = ["cuteghost"].map(id => C.STAMPS.find(s => s.id === id));
-    check("stamps: the Basics icon is 34 × 34, the motif centred and 34 px along its long edge", icons.every(s => {
-      const b = s && s.cat === "basics" && C.stampBitmap(s.rows), r = b && C.bounds(b);
-      return r && b.w === 34 && b.h === 34 && Math.max(r.w, r.h) === 34 && Math.abs(2 * r.x + r.w - 34) <= 1 && Math.abs(2 * r.y + r.h - 34) <= 1;
-    }), icons.map(s => s && JSON.stringify(C.bounds(C.stampBitmap(s.rows)))).join(" "));
+    check("stamps: only UI for now, with the title bar and 1/2 Screen; ids unique", cats.join() === "ui" && ids.join() === "titlebar,halfscreen" &&
+      new Set(ids).size === ids.length && !ids.includes("heart") && !ids.includes("knob") && !ids.includes("cuteghost"), ids.join());
     const half = C.STAMPS.find(s => s.id === "halfscreen"), hb = C.stampBitmap(half.rows), hp = (x, y) => hb.px[y * 64 + x];
     check("stamps: 1/2 Screen is 64 × 64, dark, its corners rounded 4 px (4, 2, 1, 1 pixels free in the rows from each corner)",
       half.name === "1/2 Screen" && half.cat === "ui" && hb.w === 64 && hb.h === 64 && hb.px.filter(v => v === 0).length === 64 * 64 - 32 &&

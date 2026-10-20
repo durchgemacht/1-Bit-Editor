@@ -492,7 +492,7 @@ dialog p { margin: 8px 0; max-width: 62ch; }
       <section class="panel stamps" data-panel="stamps" aria-labelledby="h-stamps">
         <h2 id="h-stamps">Stamps</h2>
         <div class="seg stamp-tabs" id="stamp-tabs" role="tablist" aria-labelledby="h-stamps">
-          <button type="button" role="tab" data-cat="basics" aria-controls="stamp-grid">Basics</button><button type="button" role="tab" data-cat="synth" aria-controls="stamp-grid">Synth</button><button type="button" role="tab" data-cat="ui" aria-controls="stamp-grid">UI</button><button type="button" role="tab" data-cat="custom" aria-controls="stamp-grid">Custom</button>
+          <button type="button" role="tab" data-cat="ui" aria-controls="stamp-grid">UI</button><button type="button" role="tab" data-cat="custom" aria-controls="stamp-grid">Custom</button>
         </div>
         <div class="stamp-grid" id="stamp-grid" role="tabpanel" aria-describedby="stamps-help"></div>
         <div class="stamp-custom" id="stamp-custom" hidden>
@@ -975,47 +975,9 @@ const Core = (() => {
   // ---- Stamps: ready-made pieces, drawn for this editor. Fixed artwork, dark on the lit canvas like the example:
   // "#" dark, "+" lit, "." transparent (what lies below stays). Rows from the top. ----
 
-  const STAMP_CATS = [["basics", "Basics"], ["synth", "Synth"], ["ui", "UI"]];
+  const STAMP_CATS = [["ui", "UI"]];   // Basics and Synth are gone until there is real content for them
   const shapeRows = s => Array.from({ length: s.h }, (_, y) => Array.from(s.m.subarray(y * s.w, (y + 1) * s.w), v => (v ? "#" : ".")).join(""));
   const STAMPS = [
-    { id: "heart", cat: "basics", name: "Heart", rows: [
-      ".##...##.", "#++#.#++#", "#+++#+++#", "#+++++++#", ".#+++++#.", "..#+++#..", "...#+#...", "....#...."] },
-    { id: "star", cat: "basics", name: "Star", rows: [
-      "....#....", "....#....", "...###...", "#########", ".#######.", "..#####..", "..##.##..", ".##...##.", ".#.....#."] },
-    { id: "arrow", cat: "basics", name: "Arrow", rows: [
-      ".....#...", ".....##..", "########.", "#########", "########.", ".....##..", ".....#..."] },
-    // 34 × 34 like the OS's machine icons: the motif centred, its long edge 34 px
-    { id: "cuteghost", cat: "basics", name: "Cute ghost", rows: [
-      "...........######.................", "........###++++++###..............", "......##++++++++++++##............",
-      ".....#++++++++++++++++#...........", "....#++++++++++++++++++#..........", "...#++++++++++++++++++++#.........",
-      "...#++++++++++++++++++++#.........", "..#++++++++++++++++++++++#........", "..#++++++++++++++++++++++#........",
-      ".#++++++++++++++++++++++++#.......", ".#++++++++++++++##++++++++#.......", ".#++++++++++++++##++++++++#.......",
-      ".#++++++++++++++++++++++++#.......", ".#++++++##++++++++++++++++#.......", ".#++++++++#+++++++++++++++####....",
-      ".#++++++++#+++++++++++++++#+++##..", ".#++++++++#+++++++++++++++#++++#..", ".#++++++##++++++++++++++++#++++#..",
-      ".#++++++++++++++++++++++++#+++##..", ".#++++++++++++++++++++++++####....", ".#++++++++++++++++++++++++#.......",
-      ".#++++++++++++++++++++++++#.......", ".#++++++++++++++++++++++++#.......", ".#++++++++++++++++++++++++#.......",
-      ".#++++++++++++++++++++++++#.......", ".#++++++++++++++++++++++++#.......", ".#++++++++++++++++++++++++#.......",
-      ".#++++++++++++++++++++++++#.......", ".#++++++++++++++++++++++++#.......", ".#++++++++++++++++++++++++#.......",
-      ".#++++++++++++++++++++++++#.......", ".#++++##+++++##+++++##++++#.......", ".##++#..##++#..#++##..#++##.......",
-      "...##.....##....##.....##........."] },
-    { id: "sine", cat: "synth", name: "Sine wave", rows: [
-      "...##..........", "..#..#.........", ".#....#........", "#......#......#", "........#....#.", ".........#..#..",
-      "..........##..."] },
-    { id: "envelope", cat: "synth", name: "Envelope", rows: [
-      "...#...........", "...##..........", "..#..#.........", "..#...#####....", ".#.........#...", ".#..........#..",
-      "#............#.", "###############"] },
-    { id: "lowpass", cat: "synth", name: "Low-pass", rows: [
-      "........##.....", ".......#..#....", "#######....#...", "...........#...", "............#..", "............#..",
-      ".............#.", "..............#"] },
-    { id: "knob", cat: "ui", name: "Knob", rows: [
-      "...#####...", "..#++#++#..", ".#+++#+++#.", "#++++#++++#", "#++++#++++#", "#++++#++++#", "#+++++++++#", "#+++++++++#",
-      ".#+++++++#.", "..#+++++#..", "...#####..."] },
-    { id: "fader", cat: "ui", name: "Fader", rows: [
-      "...#...", "...#...", "...#...", "...#...", "...#...", "#######", "#+++++#", "#+###+#", "#+++++#", "#######", "...#...",
-      "...#...", "...#...", "...#...", "...#..."] },
-    { id: "checkbox", cat: "ui", name: "Checkbox", rows: [
-      "###########", "#+++++++++#", "#+++++++++#", "#+++++++#+#", "#++++++#++#", "#+#+++#+++#", "#++#+#++++#", "#+++#+++++#",
-      "#+++++++++#", "#+++++++++#", "###########"] },
     { id: "titlebar", cat: "ui", name: "Title bar", rows:     // the shape of the OS browser's bar: 128 × 13, the corners free
       Array.from({ length: 13 }, (_, y) => (y === 0 || y === 12 ? `.${"#".repeat(126)}.` : "#".repeat(128))) },
     { id: "halfscreen", cat: "ui", name: "1/2 Screen", rows: shapeRows(roundRectShape(0, 0, 63, 63, true, 1, 4)) },   // 64 × 64, corners rounded 4 px
@@ -1730,7 +1692,7 @@ const Core = (() => {
     guides: C.loadGuides(null),             // guides on pixel edges {x: [...], y: [...]}, y from the top
     slices: [], slice: null,                // boxes that come out as sprites of their own (Core: slice), and the selected one's id
     selected: new Set(), active: null,      // the layers panel selection (ids) and the item last clicked
-    tool: "brush", primary: "off", secondary: "on", size: 1, filled: false, radius: 2, dir: "up", font: "regular", stampTab: "basics",
+    tool: "brush", primary: "off", secondary: "on", size: 1, filled: false, radius: 2, dir: "up", font: "regular", stampTab: "ui",
     align: "left", textStyle: "inverted",   // for new text layers (dark on the light canvas); a selected one shows its own
     device: "models",   // what the sprite is for; only the Model:Cycles / Model:Samples screen so far
     zoom: 8, fit: true, grid: true, osY: false,   // osY: the status line counts y from the bottom, like the OS
@@ -4440,7 +4402,7 @@ const Core = (() => {
       if (typeof p.rulersOn === "boolean") state.rulersOn = p.rulersOn;
       if (typeof p.slicesOn === "boolean") state.slicesOn = p.slicesOn;
       if (typeof p.onion === "boolean") state.onion = p.onion;
-      if (["basics", "synth", "ui", "custom"].includes(p.stampTab)) state.stampTab = p.stampTab;
+      if (["ui", "custom"].includes(p.stampTab)) state.stampTab = p.stampTab;
       return true;
     } catch (err) {
       state.w = 128;
